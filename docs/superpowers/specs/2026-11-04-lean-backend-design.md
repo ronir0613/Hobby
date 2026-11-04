@@ -65,3 +65,34 @@ and files gone.
 3. Data services: attempts, check-ins (incl. undo), journal, media, reminder settings.
 4. ~~`delete-account` Edge Function.~~ Done.
 5. ~~Local reminder scheduling with `expo-notifications` (dev build).~~ Done; verified on an Android 15 device (permission prompt, "Gentle reminders" channel, delivery, cancel). Dev builds need `expo-dev-client`.
+
+### Wiring the app to the backend (agreed 2026-11-04)
+
+These steps change screens, so the user has approved screen work for them. Visual or theme choices
+are still checked with the user first.
+
+6. **Sign-in, real Profile, tab icons.** Sign-in screen (email + Google), Profile shows the
+   account with sign out and delete account, and icons on all four tabs.
+   *Done:* on device, sign-in works both ways, the session survives a relaunch, Profile shows the
+   email, sign out works, and delete account removes the user on hosted.
+7. **Pick a hobby (catalogue from Supabase).** Explore reads categories/interests/starter ideas
+   from the database. Tapping a card opens an interest detail screen with "Try this", which creates
+   an attempt.
+   *Done:* the 9 seeded interests load from hosted with loading and error states, and "Try this"
+   creates a `planned` attempt visible in the database.
+8. **My hobbies and check-ins.** A list of the user's attempts; check in tried/skipped, correct or
+   undo a check-in, move status freely between planned/active/completed/dropped, and the
+   two-skipped-days prompt.
+   *Done:* the first check-in makes an attempt `active`, undo returns it to `planned`, and the
+   prompt appears after two skips.
+9. **Reminder settings.** On/off, time and days, saved to `notification_preferences` and scheduled
+   locally.
+   *Done:* changing the time on device delivers a notification at the new time, turning reminders
+   off cancels them, and settings survive sign out and back in.
+10. **Journal and photos (Media tab).** Notes and photos per attempt, compressed before upload,
+    with the file deleted before its row.
+    *Done:* add and delete a note and a photo on device, and Storage paths follow
+    `<user>/<attempt>/<uuid>.<ext>`.
+11. **Installable preview build.** EAS preview APK that runs without the dev-client launcher or
+    Metro.
+    *Done:* the APK installs on the test phone and opens straight into the app.
