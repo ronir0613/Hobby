@@ -94,7 +94,9 @@ are still checked with the user first.
    an attempt.
    *Done:* the 9 seeded interests load from hosted with loading and error states, and "Try this"
    creates a `planned` attempt visible in the database.
-8. **My hobbies and check-ins.** A list of the user's attempts on Profile; an attempt screen to
+8. ~~**My hobbies and check-ins.**~~ Done (ef43d3b); verified on device against hosted rows: the
+   first check-in makes an attempt `active`, two skips in a row drop it with the note, the 7th tried
+   day completes it, and "Give it another go" returns it to `planned`. A list of the user's attempts on Profile; an attempt screen to
    answer today tried/skipped (switchable until midnight), a read-only history, and a read-only
    status that follows the rules above. One attempt per interest.
    *Done:* the first check-in makes an attempt `active`, two skipped days in a row drop it with the
