@@ -7,10 +7,10 @@ import type { Tables, TablesInsert } from '@/types/database.types';
 export type ReminderSettings = Tables<'notification_preferences'>;
 export type ReminderSettingsChanges = Pick<
   TablesInsert<'notification_preferences'>,
-  'morning_enabled' | 'morning_time' | 'evening_enabled' | 'evening_time' | 'timezone'
+  'morning_enabled' | 'morning_time' | 'evening_enabled' | 'evening_time' | 'timezone' | 'weekdays'
 >;
 
-/** Null until the user saves settings once; use the column defaults (08:00 / 20:00) until then. */
+/** Null until the user saves settings once; use the column defaults (08:00 / 20:00, every day) until then. */
 export async function getReminderSettings(): Promise<ReminderSettings | null> {
   const { data, error } = await supabase.from('notification_preferences').select('*').maybeSingle();
   if (error) throw error;

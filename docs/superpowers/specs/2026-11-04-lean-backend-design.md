@@ -6,7 +6,7 @@
 ## Decisions
 
 - **Android / Play Store first.** iOS later.
-- **Reminders are in the MVP.** Scheduled locally with `expo-notifications`; Supabase stores only the settings (`notification_preferences`).
+- **Reminders are in the MVP.** Scheduled locally with `expo-notifications`; Supabase stores only the settings (`notification_preferences`: morning and evening on/off and times, the time zone, and one set of `weekdays` shared by both, ISO 1 = Monday, migration `20261104190000`). Every day → one daily trigger per reminder; otherwise one weekly trigger per chosen day.
 - **Check-ins are for today only** (changed 2026-11-04). Today is answered `tried` or `skipped` and can be switched until midnight; past days are locked. There is no undo in the app.
 - **Status follows check-ins** (changed 2026-11-04); the user never picks it. No check-ins: `planned`. First check-in: `active`. 7 tried days in the current go: `completed`. Two skipped days in a row: `dropped` ("Maybe it wasn't your thing"). The only user action is "Give it another go" on a completed or dropped hobby, which moves it back to `planned` and keeps the history; check-ins from before that no longer count (the current go starts at `started_at`).
 - **Auth:** email + Google. Apple is deferred until iOS.
@@ -77,9 +77,9 @@ These steps change screens, so the user has approved screen work for them. Visua
 are still checked with the user first.
 
 6. ~~**Sign-in, real Profile, tab icons.**~~ Done (55ac854); email verified on device (sign up +
-   confirm link, sign in, relaunch, sign out, delete account). Google code is in place, but the
-   Google provider is **not enabled on hosted** yet (needs a Google OAuth web client, the provider
-   switched on in the dashboard, and `hobby://auth/callback` in Redirect URLs), so it is untested.
+   confirm link, sign in, relaunch, sign out, delete account). Google is enabled on hosted
+   (corrected 2026-11-04) and Google sign-in is verified on device: the test account's only
+   identity on hosted is `google`, and Profile shows "Signed in with Google".
    Sign-in screen (email + Google), Profile shows the
    account with sign out and delete account, and icons on all four tabs.
    *Done:* on device, sign-in works both ways, the session survives a relaunch, Profile shows the

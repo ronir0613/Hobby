@@ -4,7 +4,10 @@ import test from 'node:test';
 import {
   REMINDER_COPY,
   REMINDER_ID_PREFIX,
+  describeWeekdays,
   enablesReminder,
+  isoToExpoWeekday,
+  normalizeWeekdays,
   parseTime,
   planReminders,
   timeZoneOffsetMinutes,
@@ -88,6 +91,7 @@ test('planReminders schedules only the enabled reminders, with stable ids', () =
     kind: 'evening',
     hour: 21,
     minute: 15,
+    weekday: null,
     ...REMINDER_COPY.evening,
   });
 });
@@ -121,4 +125,66 @@ test('enablesReminder is true only when a change turns a reminder on', () => {
   assert.equal(enablesReminder({ evening_enabled: true, morning_enabled: false }), true);
   assert.equal(enablesReminder({ morning_enabled: false }), false);
   assert.equal(enablesReminder({}), false);
+});
+
+test('isoToExpoWeekday maps Monday-first to Expo Sunday-first', () => {
+  assert.deepEqual([1, 2, 3, 4, 5, 6, 7].map(isoToExpoWeekday), [2, 3, 4, 5, 6, 7, 1]);
+});
+
+test('normalizeWeekdays sorts, de-duplicates and drops bad values', () => {
+  assert.deepEqual(normalizeWeekdays(undefined), [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(normalizeWeekdays([5, 1, 5, 9, 0, 3]), [1, 3, 5]);
+});
+
+test('planReminders uses one daily trigger when every day is chosen', () => {
+  const plan = planReminders(prefs({ evening_enabled: true, weekdays: [1, 2, 3, 4, 5, 6, 7] }), {
+    deviceTimeZone: 'Asia/Kolkata',
+  });
+  assert.deepEqual(plan.map(({ id, weekday }) => ({ id, weekday })), [
+    { id: `${REMINDER_ID_PREFIX}evening`, weekday: null },
+  ]);
+});
+
+test('planReminders schedules one weekly trigger per chosen day', () => {
+  const plan = planReminders(
+    prefs({ morning_enabled: true, evening_enabled: true, weekdays: [1, 7] }),
+    { deviceTimeZone: 'Asia/Kolkata' },
+  );
+  assert.deepEqual(
+    plan.map(({ id, weekday, hour }) => ({ id, weekday, hour })),
+    [
+      { id: `${REMINDER_ID_PREFIX}morning-1`, weekday: 2, hour: 8 },
+      { id: `${REMINDER_ID_PREFIX}morning-7`, weekday: 1, hour: 8 },
+      { id: `${REMINDER_ID_PREFIX}evening-1`, weekday: 2, hour: 20 },
+      { id: `${REMINDER_ID_PREFIX}evening-7`, weekday: 1, hour: 20 },
+    ],
+  );
+});
+
+test('planReminders moves the day when the zone shift crosses midnight', () => {
+  const now = new Date('2026-11-04T00:00:00Z');
+  // Monday 02:00 in Kolkata is Sunday 20:30 in UTC.
+  const back = planReminders(prefs({ morning_enabled: true, morning_time: '02:00', weekdays: [1] }), {
+    deviceTimeZone: 'UTC',
+    now,
+  });
+  assert.deepEqual(back.map(({ weekday, hour, minute }) => ({ weekday, hour, minute })), [
+    { weekday: 1, hour: 20, minute: 30 },
+  ]);
+  // Sunday 22:00 in UTC is Monday 03:30 in Kolkata.
+  const ahead = planReminders(
+    prefs({ evening_enabled: true, evening_time: '22:00', timezone: 'UTC', weekdays: [7] }),
+    { deviceTimeZone: 'Asia/Kolkata', now },
+  );
+  assert.deepEqual(ahead.map(({ weekday, hour, minute }) => ({ weekday, hour, minute })), [
+    { weekday: 2, hour: 3, minute: 30 },
+  ]);
+});
+
+test('describeWeekdays gives a short summary', () => {
+  assert.equal(describeWeekdays([1, 2, 3, 4, 5, 6, 7]), 'Every day');
+  assert.equal(describeWeekdays([1, 2, 3, 4, 5]), 'Weekdays');
+  assert.equal(describeWeekdays([7, 6]), 'Weekends');
+  assert.equal(describeWeekdays([3]), '1 day');
+  assert.equal(describeWeekdays([1, 3, 5]), '3 days');
 });

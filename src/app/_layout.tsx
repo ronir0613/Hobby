@@ -59,6 +59,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="interest/[slug]" />
         <Stack.Screen name="attempt/[id]" />
+        <Stack.Screen name="reminders" />
         {/* Signing in sends the user back to the tabs automatically. */}
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />

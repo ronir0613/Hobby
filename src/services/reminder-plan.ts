@@ -8,6 +8,8 @@ export type ReminderPrefs = {
   evening_enabled: boolean;
   evening_time: string;
   timezone: string; // IANA name, e.g. 'Asia/Kolkata'
+  /** ISO weekdays, 1 = Monday … 7 = Sunday, in `timezone`. Missing means every day. */
+  weekdays?: readonly number[];
 };
 
 export type PlannedReminder = {
@@ -15,13 +17,18 @@ export type PlannedReminder = {
   kind: ReminderKind;
   hour: number;
   minute: number;
+  /** Expo weekday on the device (1 = Sunday … 7 = Saturday), or null for every day. */
+  weekday: number | null;
   title: string;
   body: string;
 };
 
+export const ALL_WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
+
 /** Every notification we schedule uses this prefix, so we only ever cancel our own. */
 export const REMINDER_ID_PREFIX = 'hobby-reminder-';
-export const reminderId = (kind: ReminderKind) => `${REMINDER_ID_PREFIX}${kind}`;
+export const reminderId = (kind: ReminderKind, isoWeekday?: number) =>
+  `${REMINDER_ID_PREFIX}${kind}${isoWeekday ? `-${isoWeekday}` : ''}`;
 
 // Gentle, no-streak copy. Nothing about missing days or keeping a run going.
 export const REMINDER_COPY: Record<ReminderKind, { title: string; body: string }> = {
@@ -74,36 +81,83 @@ export function toDeviceTime(
   toZone: string,
   now: Date,
 ): { hour: number; minute: number } {
-  if (!fromZone || !toZone || fromZone === toZone) return time;
+  const { hour, minute } = shiftToDevice(time, fromZone, toZone, now);
+  return { hour, minute };
+}
+
+/** Like toDeviceTime, plus how many days the shift crossed (-1, 0 or 1). */
+function shiftToDevice(
+  time: { hour: number; minute: number },
+  fromZone: string,
+  toZone: string,
+  now: Date,
+): { hour: number; minute: number; dayShift: number } {
+  if (!fromZone || !toZone || fromZone === toZone) return { ...time, dayShift: 0 };
   let shift: number;
   try {
     shift = timeZoneOffsetMinutes(toZone, now) - timeZoneOffsetMinutes(fromZone, now);
   } catch {
-    return time;
+    return { ...time, dayShift: 0 };
   }
-  const total = (((time.hour * 60 + time.minute + shift) % 1440) + 1440) % 1440;
-  return { hour: Math.floor(total / 60), minute: total % 60 };
+  const raw = time.hour * 60 + time.minute + shift;
+  const total = ((raw % 1440) + 1440) % 1440;
+  return { hour: Math.floor(total / 60), minute: total % 60, dayShift: Math.floor(raw / 1440) };
 }
 
-/** The daily reminders to schedule on this device. Empty when nothing is on (or no settings yet). */
+/** ISO weekday (1 = Monday) to Expo's weekly trigger weekday (1 = Sunday). */
+export const isoToExpoWeekday = (iso: number) => (iso % 7) + 1;
+
+/** Sorted, de-duplicated valid ISO weekdays. */
+export function normalizeWeekdays(days: readonly number[] | undefined): number[] {
+  if (!days) return [...ALL_WEEKDAYS];
+  return [...new Set(days)].filter((d) => Number.isInteger(d) && d >= 1 && d <= 7).sort((a, b) => a - b);
+}
+
+/**
+ * The reminders to schedule on this device. Every day → one daily trigger per reminder;
+ * otherwise one weekly trigger per chosen day. Empty when nothing is on (or no settings yet).
+ */
 export function planReminders(
   prefs: ReminderPrefs | null,
   options: { deviceTimeZone: string; now?: Date },
 ): PlannedReminder[] {
   if (!prefs) return [];
   const now = options.now ?? new Date();
+  const days = normalizeWeekdays(prefs.weekdays);
+  const everyDay = days.length === 7;
   const wanted: [ReminderKind, boolean, string][] = [
     ['morning', prefs.morning_enabled, prefs.morning_time],
     ['evening', prefs.evening_enabled, prefs.evening_time],
   ];
   return wanted
     .filter(([, enabled]) => enabled)
-    .map(([kind, , time]) => ({
-      id: reminderId(kind),
-      kind,
-      ...toDeviceTime(parseTime(time), prefs.timezone, options.deviceTimeZone, now),
-      ...REMINDER_COPY[kind],
-    }));
+    .flatMap(([kind, , time]): PlannedReminder[] => {
+      const { hour, minute, dayShift } = shiftToDevice(
+        parseTime(time),
+        prefs.timezone,
+        options.deviceTimeZone,
+        now,
+      );
+      if (everyDay) return [{ id: reminderId(kind), kind, hour, minute, weekday: null, ...REMINDER_COPY[kind] }];
+      return days.map((iso) => ({
+        id: reminderId(kind, iso),
+        kind,
+        hour,
+        minute,
+        // A time zone shift past midnight moves the reminder to the neighbouring device day.
+        weekday: isoToExpoWeekday((((iso - 1 + dayShift) % 7) + 7) % 7 + 1),
+        ...REMINDER_COPY[kind],
+      }));
+    });
+}
+
+/** "Every day", "Weekdays", "Weekends" or "5 days", for the Profile summary. */
+export function describeWeekdays(days: readonly number[] | undefined): string {
+  const list = normalizeWeekdays(days);
+  if (list.length === 7) return 'Every day';
+  if (list.join() === '1,2,3,4,5') return 'Weekdays';
+  if (list.join() === '6,7') return 'Weekends';
+  return list.length === 1 ? '1 day' : `${list.length} days`;
 }
 
 /**

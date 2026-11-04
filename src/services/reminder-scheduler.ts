@@ -78,12 +78,21 @@ async function schedule(reminder: PlannedReminder) {
       body: reminder.body,
       data: { kind: reminder.kind },
     },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: reminder.hour,
-      minute: reminder.minute,
-      channelId: REMINDER_CHANNEL_ID,
-    },
+    trigger:
+      reminder.weekday === null
+        ? {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: reminder.hour,
+            minute: reminder.minute,
+            channelId: REMINDER_CHANNEL_ID,
+          }
+        : {
+            type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+            weekday: reminder.weekday,
+            hour: reminder.hour,
+            minute: reminder.minute,
+            channelId: REMINDER_CHANNEL_ID,
+          },
   });
 }
 
