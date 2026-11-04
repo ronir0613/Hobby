@@ -70,6 +70,9 @@ select is((select count(*)::int from storage.objects), 0, 'B cannot see A''s fil
 
 update public.attempts set custom_title = 'hacked';
 delete from public.checkins;
+-- Hosted Supabase blocks direct deletes on storage.objects unless this flag is
+-- set (the Storage API sets it). Set it so RLS is what stops B's delete.
+select set_config('storage.allow_delete_query', 'true', true);
 delete from storage.objects;
 
 select throws_ok(
