@@ -1,0 +1,1 @@
+-- Catalogue lives in migrations/20261104090100_seed_catalogue.sql so it reaches the hosted project via db push.

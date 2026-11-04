@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-11-04)** by `docs/superpowers/specs/2026-11-04-lean-backend-design.md`. Kept for reference only; do not implement from this file.
+
 # Supabase Backend Foundation — Design
 
 **Status:** Awaiting approval before implementation  
