@@ -102,8 +102,13 @@ are still checked with the user first.
    *Done:* the first check-in makes an attempt `active`, two skipped days in a row drop it with the
    "Maybe it wasn't your thing" note, the 7th tried day completes it, and "Give it another go" returns
    it to `planned`.
-9. **Reminder settings.** On/off, time and days, saved to `notification_preferences` and scheduled
-   locally.
+9. ~~**Reminder settings.**~~ Done (0f594f3); verified on device against the hosted row: a time
+   changed to 23:35 delivered "How did today feel?" at 23:35, turning it off left no scheduled
+   alarms, weekdays-only scheduled five weekly alarms (weekend skipped), and signing out cleared
+   them while the row stayed, then signing back in rescheduled them. Reminders is its own screen
+   from a Profile row; morning and evening each have on/off and a time (Android clock dialog),
+   with one shared set of days (`weekdays`, migration `20261104190000`). On/off, time and days,
+   saved to `notification_preferences` and scheduled locally.
    *Done:* changing the time on device delivers a notification at the new time, turning reminders
    off cancels them, and settings survive sign out and back in.
 10. **Journal and photos (Media tab).** Notes and photos per attempt, compressed before upload,
