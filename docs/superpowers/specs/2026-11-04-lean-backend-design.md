@@ -64,4 +64,4 @@ and files gone.
 2. Client + auth service (email, Google), `.env` → `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 3. Data services: attempts, check-ins (incl. undo), journal, media, reminder settings.
 4. ~~`delete-account` Edge Function.~~ Done.
-5. Local reminder scheduling with `expo-notifications` (dev build).
+5. ~~Local reminder scheduling with `expo-notifications` (dev build).~~ Done; verified on an Android 15 device (permission prompt, "Gentle reminders" channel, delivery, cancel). Dev builds need `expo-dev-client`.
