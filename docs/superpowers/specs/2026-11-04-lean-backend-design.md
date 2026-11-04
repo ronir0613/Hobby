@@ -37,8 +37,9 @@ What lives in the app instead:
 ## Catalogue
 
 `20261104090100_seed_catalogue.sql` seeds the 9 local interests (slugs match the ids in
-`src/data/interest-catalog.ts`) with a type each and one starter idea. The app keeps its local
-catalogue until screens are wired to the database.
+`src/data/interest-catalog.ts`) with a type each and one starter idea. Explore and the interest
+detail screen read the catalogue from the database (step 7); Discover still shows the local list,
+and its cards open the live detail screen by slug.
 
 ## Verification
 
@@ -79,7 +80,12 @@ are still checked with the user first.
    account with sign out and delete account, and icons on all four tabs.
    *Done:* on device, sign-in works both ways, the session survives a relaunch, Profile shows the
    email, sign out works, and delete account removes the user on hosted.
-7. **Pick a hobby (catalogue from Supabase).** Explore reads categories/interests/starter ideas
+7. ~~**Pick a hobby (catalogue from Supabase).**~~ Done (b404444); verified on device: the 9
+   interests load from hosted, airplane mode (Wi-Fi off too) shows the error state and retry
+   recovers, and "Try this" created `planned` attempts (with their starter idea) on hosted.
+   Signed-out "Try this" goes to sign-in and returns to the interest afterwards (also through the
+   Google browser redirect, which leaves sign-in before the session lands). Discover cards open
+   the same detail screen. Explore reads categories/interests/starter ideas
    from the database. Tapping a card opens an interest detail screen with "Try this", which creates
    an attempt.
    *Done:* the 9 seeded interests load from hosted with loading and error states, and "Try this"
