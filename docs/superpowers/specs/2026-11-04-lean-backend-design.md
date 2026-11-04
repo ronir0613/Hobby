@@ -46,10 +46,22 @@ catalogue until screens are wired to the database.
 users, Storage paths). They were run against PostgreSQL 16 with stand-ins for Supabase's `auth`
 and `storage` schemas. They have **not** yet run on the hosted project.
 
+## Account deletion
+
+`supabase/functions/delete-account` (deployed, `verify_jwt = true`). It takes the user only from
+the JWT (`auth.getUser`), removes every `activity-media` object under `<user>/` via the Storage
+API (paginated, re-listed to confirm empty), then calls `auth.admin.deleteUser`. A Storage failure
+leaves the user in place. App: `deleteAccount()` in `src/services/auth.ts`.
+
+Auth deletes users as `supabase_auth_admin`, and triggers fired by the FK cascade run as that
+role, so `checkins_sync_attempt_status` is `SECURITY DEFINER` (migration `20261104120000`).
+Verified end to end on hosted with `scripts/e2e-delete-account.mjs` (seed, then delete): all rows
+and files gone.
+
 ## Next steps
 
 1. `db push` the migrations; generate types.
 2. Client + auth service (email, Google), `.env` → `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 3. Data services: attempts, check-ins (incl. undo), journal, media, reminder settings.
-4. `delete-account` Edge Function.
+4. ~~`delete-account` Edge Function.~~ Done.
 5. Local reminder scheduling with `expo-notifications` (dev build).

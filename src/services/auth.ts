@@ -1,4 +1,4 @@
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { FunctionsHttpError, type AuthChangeEvent, type Session } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -89,6 +89,36 @@ export async function signInWithGoogle(): Promise<Session | null> {
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+}
+
+type DeleteAccountResponse =
+  | { ok: true; files_removed: number }
+  | { ok: false; error: { code: string; message: string } };
+
+/**
+ * Permanently deletes the signed-in user's photos, data and account via the
+ * `delete-account` Edge Function, then clears the session on this device.
+ * The function identifies the user from the session JWT that `invoke` sends.
+ */
+export async function deleteAccount() {
+  const { data, error } = await supabase.functions.invoke<DeleteAccountResponse>('delete-account', {
+    method: 'POST',
+  });
+
+  if (error) {
+    // Non-2xx: the function's JSON error message is in the response body.
+    if (error instanceof FunctionsHttpError) {
+      const body = (await (error.context as Response).json().catch(() => null)) as DeleteAccountResponse | null;
+      if (body && !body.ok) throw new Error(body.error.message);
+    }
+    throw error;
+  }
+  if (!data?.ok) throw new Error('Account deletion failed.');
+
+  // The user no longer exists on the server, so only clear the local session.
+  const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+  if (signOutError) throw signOutError;
+  return { filesRemoved: data.files_removed };
 }
 
 export async function getSession() {
