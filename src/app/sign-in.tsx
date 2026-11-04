@@ -1,0 +1,209 @@
+import { isAuthError } from '@supabase/supabase-js';
+import { SymbolView } from 'expo-symbols';
+import { router } from 'expo-router';
+import { useRef, useState, type ComponentRef } from 'react';
+import { Pressable, View, useColorScheme, type TextInput } from 'react-native';
+import { ActionButton } from '@/components/ActionButton';
+import { AppScreen } from '@/components/AppScreen';
+import { AppText } from '@/components/AppText';
+import { TextField } from '@/components/TextField';
+import { signInWithEmail, signInWithGoogle, signUpWithEmail } from '@/services/auth';
+import { darkColors, lightColors } from '@/theme/colors';
+
+type Mode = 'sign-in' | 'create';
+type Busy = 'email' | 'google' | null;
+
+const MIN_PASSWORD = 6; // Supabase Auth default
+
+function friendlyError(error: unknown) {
+  if (isAuthError(error)) {
+    switch (error.code) {
+      case 'invalid_credentials':
+        return "That email and password don't match. Try again, or create an account.";
+      case 'email_not_confirmed':
+        return 'Please confirm your email first. The link is in your inbox.';
+      case 'user_already_exists':
+        return 'There is already an account with this email. Try signing in instead.';
+      case 'weak_password':
+        return `Choose a password with at least ${MIN_PASSWORD} characters.`;
+      case 'over_email_send_rate_limit':
+      case 'over_request_rate_limit':
+        return 'Too many tries for now. Please wait a minute and try again.';
+    }
+  }
+  if (error instanceof Error && /network|fetch/i.test(error.message)) {
+    return "Couldn't reach the server. Check your connection and try again.";
+  }
+  return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+}
+
+export default function SignInScreen() {
+  const colors = useColorScheme() === 'dark' ? darkColors : lightColors;
+  const [mode, setMode] = useState<Mode>('sign-in');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState<Busy>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const creating = mode === 'create';
+
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
+
+  // On success the auth listener updates the session and the protected
+  // route sends the user back to the tabs, so nothing else to do here.
+  async function continueWithGoogle() {
+    setError(null);
+    setNotice(null);
+    setBusy('google');
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function submitEmail() {
+    setError(null);
+    setNotice(null);
+    const trimmed = email.trim();
+    if (!/^\S+@\S+\.\S+$/.test(trimmed)) {
+      setError('Enter the email address you use for Hobby.');
+      return;
+    }
+    if (password.length < MIN_PASSWORD) {
+      setError(`Your password needs at least ${MIN_PASSWORD} characters.`);
+      return;
+    }
+    setBusy('email');
+    try {
+      if (creating) {
+        const { needsConfirmation } = await signUpWithEmail(trimmed, password);
+        if (needsConfirmation) {
+          setNotice(`We sent a link to ${trimmed}. Open it on this phone to finish creating your account.`);
+        }
+      } else {
+        await signInWithEmail(trimmed, password);
+      }
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function switchMode() {
+    setMode(creating ? 'sign-in' : 'create');
+    setError(null);
+    setNotice(null);
+  }
+
+  return (
+    <AppScreen>
+      <View className="pb-8 pt-3">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={goBack}
+          hitSlop={8}
+          className="h-12 w-12 items-center justify-center rounded-full"
+          style={({ pressed }) => ({ marginLeft: -12, opacity: pressed ? 0.7 : 1 })}
+        >
+          <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.foreground} size={24} />
+        </Pressable>
+
+        <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.5, marginTop: 10 }}>
+          {creating ? 'NEW HERE' : 'WELCOME BACK'}
+        </AppText>
+        <AppText accessibilityRole="header" weight="medium" size={34} style={{ lineHeight: 40, marginTop: 13, letterSpacing: -0.7 }}>
+          {creating ? 'Make a little room to begin.' : 'Keep your experiments in one place.'}
+        </AppText>
+        <AppText tone="secondary" size={16} style={{ marginTop: 9 }}>
+          Your attempts, notes and reminders stay with your account.
+        </AppText>
+
+        <ActionButton
+          label={busy === 'google' ? 'Opening Google…' : 'Continue with Google'}
+          variant="secondary"
+          onPress={continueWithGoogle}
+          disabled={busy !== null}
+          style={{ marginTop: 28 }}
+        />
+
+        <View className="my-6 flex-row items-center gap-3" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <View className="h-px flex-1 bg-border dark:bg-dark-border" />
+          <AppText tone="secondary" size={13}>
+            or
+          </AppText>
+          <View className="h-px flex-1 bg-border dark:bg-dark-border" />
+        </View>
+
+        <View className="gap-4">
+          <TextField
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="email"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            submitBehavior="submit"
+          />
+          <TextField
+            ref={passwordRef}
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder={creating ? `At least ${MIN_PASSWORD} characters` : 'Your password'}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete={creating ? 'new-password' : 'current-password'}
+            textContentType={creating ? 'newPassword' : 'password'}
+            returnKeyType="go"
+            onSubmitEditing={submitEmail}
+          />
+        </View>
+
+        {error ? (
+          <View accessibilityLiveRegion="polite" className="mt-4 rounded-2xl border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted">
+            <AppText accessibilityRole="alert" weight="medium" size={14}>
+              {error}
+            </AppText>
+          </View>
+        ) : null}
+        {notice ? (
+          <View accessibilityLiveRegion="polite" className="mt-4 rounded-2xl bg-secondary p-4 dark:bg-dark-secondary">
+            <AppText size={14}>{notice}</AppText>
+          </View>
+        ) : null}
+
+        <ActionButton
+          label={busy === 'email' ? (creating ? 'Creating account…' : 'Signing in…') : creating ? 'Create account' : 'Sign in'}
+          onPress={submitEmail}
+          disabled={busy !== null}
+          style={{ marginTop: 20 }}
+        />
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={switchMode}
+          disabled={busy !== null}
+          className="mt-3 min-h-12 items-center justify-center"
+        >
+          <AppText tone="secondary" size={14}>
+            {creating ? 'Already have an account? ' : 'New here? '}
+            <AppText weight="semibold" size={14} style={{ color: colors.accentText }}>
+              {creating ? 'Sign in' : 'Create an account'}
+            </AppText>
+          </AppText>
+        </Pressable>
+      </View>
+    </AppScreen>
+  );
+}

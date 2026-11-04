@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../../global.css';
+import { startAuthListener, useAuthStore } from '@/features/auth/auth-store';
 import { startReminderSync } from '@/services/reminder-scheduler';
 import { darkColors, lightColors } from '@/theme/colors';
 
@@ -25,6 +26,9 @@ export default function RootLayout() {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const colors = scheme === 'dark' ? darkColors : lightColors;
 
+  const signedIn = useAuthStore((state) => state.session !== null);
+
+  useEffect(() => startAuthListener(), []);
   useEffect(() => startReminderSync(), []);
 
   useEffect(() => {
@@ -42,6 +46,10 @@ export default function RootLayout() {
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background }, headerShown: false }}>
         <Stack.Screen name="(tabs)" />
+        {/* Signing in sends the user back to the tabs automatically. */}
+        <Stack.Protected guard={!signedIn}>
+          <Stack.Screen name="sign-in" />
+        </Stack.Protected>
         <Stack.Screen name="+not-found" options={{ headerShown: true, title: 'Not found' }} />
       </Stack>
     </SafeAreaProvider>
