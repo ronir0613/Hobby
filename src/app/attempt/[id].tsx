@@ -13,6 +13,7 @@ import { requireSignIn, useAuthStore } from '@/features/auth/auth-store';
 import { ensureCatalogue } from '@/features/explore/catalogue-store';
 import { answerToday, giveAnotherGo, loadHobbies, useHobbiesStore } from '@/features/hobbies/hobbies-store';
 import { useAttemptTitle } from '@/features/hobbies/use-attempt-title';
+import { KeepsakesSection } from '@/features/keepsakes/KeepsakesSection';
 import {
   TRIED_DAYS_TO_COMPLETE,
   currentRun,
@@ -203,6 +204,8 @@ export default function AttemptScreen() {
             </AppText>
           </View>
         ) : null}
+
+        <KeepsakesSection attemptId={attempt.id} />
 
         {history.length > 0 ? (
           <>

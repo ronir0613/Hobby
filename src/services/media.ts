@@ -112,6 +112,16 @@ export async function listMedia(
   return data;
 }
 
+/** All of the signed-in user's photos (RLS), newest first. */
+export async function listMyMedia(): Promise<MediaAsset[]> {
+  const { data, error } = await supabase
+    .from('media_assets')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
 /** Links a photo to a journal entry of the same attempt, or unlinks it with null. */
 export async function setMediaJournalEntry(
   id: string,
@@ -146,10 +156,20 @@ export async function getSignedMediaUrls(
 
 /** Removes the file first, then the row, so a failure never leaves an unlisted file behind. */
 export async function deleteMedia(asset: Pick<MediaAsset, 'id' | 'storage_path'>): Promise<void> {
-  const { error: storageError } = await supabase.storage
-    .from(MEDIA_BUCKET)
-    .remove([asset.storage_path]);
+  const bucket = supabase.storage.from(MEDIA_BUCKET);
+  const { data: removed, error: storageError } = await bucket.remove([asset.storage_path]);
   if (storageError) throw storageError;
+  // Storage reports a denied delete as "nothing removed". Only go on if the file is really gone
+  // (it may already be, after an earlier try whose row delete failed).
+  if (removed.length === 0) {
+    const slash = asset.storage_path.lastIndexOf('/');
+    const name = asset.storage_path.slice(slash + 1);
+    const { data: left, error: listError } = await bucket.list(asset.storage_path.slice(0, slash), {
+      search: name,
+    });
+    if (listError) throw listError;
+    if (left.some((item) => item.name === name)) throw new Error('Could not remove this photo.');
+  }
 
   const { error } = await supabase.from('media_assets').delete().eq('id', asset.id);
   if (error) throw error;

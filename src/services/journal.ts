@@ -14,6 +14,16 @@ export async function listJournalEntries(attemptId: string): Promise<JournalEntr
   return data;
 }
 
+/** All of the signed-in user's entries (RLS), newest first. */
+export async function listMyJournalEntries(): Promise<JournalEntry[]> {
+  const { data, error } = await supabase
+    .from('journal_entries')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
 export async function getJournalEntry(id: string): Promise<JournalEntry | null> {
   const { data, error } = await supabase
     .from('journal_entries')
