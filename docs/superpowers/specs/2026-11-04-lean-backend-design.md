@@ -111,7 +111,13 @@ are still checked with the user first.
    saved to `notification_preferences` and scheduled locally.
    *Done:* changing the time on device delivers a notification at the new time, turning reminders
    off cancels them, and settings survive sign out and back in.
-10. **Journal and photos (Media tab).** Notes and photos per attempt, compressed before upload,
+10. ~~**Journal and photos (Media tab).**~~ Done (4499472); verified on device against hosted: a note
+    was added, edited and deleted (journal_entries row created, updated, gone), and a gallery photo
+    was uploaded as a 134 KB JPEG at `<user>/<attempt>/<uuid>.jpg` (media_assets row and
+    storage.objects name match), then deleted with both the file and the row gone. Notes and photos
+    live on the attempt screen; Media lists them across hobbies. Photos come from the camera or the
+    Android photo picker (`expo-image-picker`). Not yet tried on device: the camera button and the
+    signed-out prompts. Notes and photos per attempt, compressed before upload,
     with the file deleted before its row.
     *Done:* add and delete a note and a photo on device, and Storage paths follow
     `<user>/<attempt>/<uuid>.<ext>`.
