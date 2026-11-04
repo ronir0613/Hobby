@@ -71,7 +71,11 @@ and files gone.
 These steps change screens, so the user has approved screen work for them. Visual or theme choices
 are still checked with the user first.
 
-6. **Sign-in, real Profile, tab icons.** Sign-in screen (email + Google), Profile shows the
+6. ~~**Sign-in, real Profile, tab icons.**~~ Done (55ac854); email verified on device (sign up +
+   confirm link, sign in, relaunch, sign out, delete account). Google code is in place, but the
+   Google provider is **not enabled on hosted** yet (needs a Google OAuth web client, the provider
+   switched on in the dashboard, and `hobby://auth/callback` in Redirect URLs), so it is untested.
+   Sign-in screen (email + Google), Profile shows the
    account with sign out and delete account, and icons on all four tabs.
    *Done:* on device, sign-in works both ways, the session survives a relaunch, Profile shows the
    email, sign out works, and delete account removes the user on hosted.
