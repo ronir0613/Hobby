@@ -1,4 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
+import { router, type Href } from 'expo-router';
 import { create } from 'zustand';
 
 import { onAuthChange } from '@/services/auth';
@@ -7,9 +8,17 @@ type AuthState = {
   session: Session | null;
   /** False until the stored session has been read on launch. */
   ready: boolean;
+  /** Where to go once sign-in finishes (the protected sign-in route resets history to the tabs). */
+  returnTo: Href | null;
 };
 
-export const useAuthStore = create<AuthState>(() => ({ session: null, ready: false }));
+export const useAuthStore = create<AuthState>(() => ({ session: null, ready: false, returnTo: null }));
+
+/** Sends a signed-out user to sign-in, then back to `returnTo` once they are signed in. */
+export function requireSignIn(returnTo: Href) {
+  useAuthStore.setState({ returnTo });
+  router.push('/sign-in');
+}
 
 let started = false;
 

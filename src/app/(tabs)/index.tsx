@@ -1,4 +1,5 @@
-import { View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, View } from 'react-native';
 import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
@@ -6,6 +7,8 @@ import { INTERESTS } from '@/data/interest-catalog';
 
 export default function DiscoverScreen() {
   const firstInterest = INTERESTS[0];
+  // Local ids match the catalogue slugs, so the detail screen loads the live interest.
+  const openInterest = (slug: string) => router.push({ pathname: '/interest/[slug]', params: { slug } });
 
   return (
     <AppScreen>
@@ -20,7 +23,13 @@ export default function DiscoverScreen() {
           Find an interest that feels like you, then try it in a small, unhurried way.
         </AppText>
 
-        <View className="mt-8 overflow-hidden rounded-[28px] bg-secondary p-6 dark:bg-dark-secondary">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityHint="Opens this interest"
+          onPress={() => openInterest(firstInterest.id)}
+          className="mt-8 overflow-hidden rounded-[28px] bg-secondary p-6 dark:bg-dark-secondary"
+          style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
+        >
           <View
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
@@ -48,7 +57,7 @@ export default function DiscoverScreen() {
               {firstInterest.starterIdea}
             </AppText>
           </View>
-        </View>
+        </Pressable>
 
         <ActionButton label="Explore all interests" href="/explore" style={{ marginTop: 22 }} />
 
@@ -61,9 +70,13 @@ export default function DiscoverScreen() {
           </AppText>
           <View className="flex-row gap-3">
             {INTERESTS.slice(4, 6).map((interest) => (
-              <View
+              <Pressable
                 key={interest.id}
+                accessibilityRole="button"
+                accessibilityHint="Opens this interest"
+                onPress={() => openInterest(interest.id)}
                 className="min-h-24 flex-1 justify-between rounded-2xl border border-border bg-surface p-4 dark:border-dark-border dark:bg-dark-surface"
+                style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
               >
                 <AppText weight="semibold" size={16}>
                   {interest.name}
@@ -71,7 +84,7 @@ export default function DiscoverScreen() {
                 <AppText tone="secondary" size={13}>
                   {interest.estimatedMinutes} min to begin
                 </AppText>
-              </View>
+              </Pressable>
             ))}
           </View>
         </View>

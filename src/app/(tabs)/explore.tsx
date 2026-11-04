@@ -1,11 +1,13 @@
-import { useMemo } from 'react';
+import { router } from 'expo-router';
+import { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, TextInput, View, useColorScheme } from 'react-native';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
 import { InterestCard } from '@/components/InterestCard';
-import { INTEREST_CATEGORIES, INTERESTS } from '@/data/interest-catalog';
-import { filterInterests } from '@/features/explore/filter-interests';
+import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
+import { ensureCatalogue, loadCatalogue, useCatalogueStore } from '@/features/explore/catalogue-store';
 import { useExploreStore } from '@/features/explore/explore-store';
+import { ALL_CATEGORIES, filterInterests } from '@/features/explore/filter-interests';
 import { darkColors, lightColors } from '@/theme/colors';
 
 export default function ExploreScreen() {
@@ -13,13 +15,22 @@ export default function ExploreScreen() {
   const selectedCategory = useExploreStore((state) => state.selectedCategory);
   const setSearchText = useExploreStore((state) => state.setSearchText);
   const setSelectedCategory = useExploreStore((state) => state.setSelectedCategory);
+  const status = useCatalogueStore((state) => state.status);
+  const catalogue = useCatalogueStore((state) => state.catalogue);
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const colors = scheme === 'dark' ? darkColors : lightColors;
-  const filteredInterests = useMemo(
-    () => filterInterests(INTERESTS, searchText, selectedCategory),
-    [searchText, selectedCategory],
+
+  useEffect(() => ensureCatalogue(), []);
+
+  const categories = useMemo(
+    () => [ALL_CATEGORIES, ...(catalogue?.categories.map((category) => category.name) ?? [])],
+    [catalogue],
   );
-  const hasFilters = searchText.trim().length > 0 || selectedCategory !== 'All';
+  const filteredInterests = useMemo(
+    () => filterInterests(catalogue?.interests ?? [], searchText, selectedCategory),
+    [catalogue, searchText, selectedCategory],
+  );
+  const hasFilters = searchText.trim().length > 0 || selectedCategory !== ALL_CATEGORIES;
 
   return (
     <AppScreen>
@@ -50,75 +61,102 @@ export default function ExploreScreen() {
           value={searchText}
         />
 
-        <AppText weight="semibold" size={14} style={{ marginTop: 22, marginBottom: 9 }}>
-          Browse by category
-        </AppText>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
-          accessibilityLabel="Interest categories"
-        >
-          {INTEREST_CATEGORIES.map((category) => {
-            const selected = selectedCategory === category;
-            return (
-              <Pressable
-                key={category}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                accessibilityLabel={`${category}${selected ? ', selected' : ''}`}
-                onPress={() => setSelectedCategory(category)}
-                className={`min-h-12 justify-center rounded-full border px-4 ${
-                  selected
-                    ? 'border-accent bg-accent dark:border-dark-accent dark:bg-dark-accent'
-                    : 'border-border bg-surface dark:border-dark-border dark:bg-dark-surface'
-                }`}
-                style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-              >
-                <AppText tone={selected ? 'onAccent' : 'primary'} weight="medium" size={14}>
-                  {category}
-                </AppText>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        <View className="mt-6 mb-3 flex-row items-center justify-between">
-          <AppText weight="semibold" size={18}>
-            {filteredInterests.length} {filteredInterests.length === 1 ? 'interest' : 'interests'}
-          </AppText>
-          {hasFilters ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Clear search and category filters"
-              onPress={() => {
-                setSearchText('');
-                setSelectedCategory('All');
-              }}
-              className="min-h-12 justify-center px-2"
-            >
-              <AppText tone="secondary" weight="semibold" size={14}>
-                Clear filters
-              </AppText>
-            </Pressable>
-          ) : null}
-        </View>
-
-        {filteredInterests.length > 0 ? (
-          filteredInterests.map((interest) => <InterestCard key={interest.id} interest={interest} />)
-        ) : (
-          <View className="mt-2 rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
-            <AppText weight="semibold" size={20}>
-              Nothing here just yet.
-            </AppText>
-            <AppText tone="secondary" size={15} style={{ marginTop: 7 }}>
-              Try a different word or browse all interests.
-            </AppText>
+        {!catalogue && status === 'error' ? (
+          <View className="mt-6">
+            <ErrorMessage
+              title="We couldn't load interests."
+              body="Check your connection, then try again."
+              onAction={() => void loadCatalogue()}
+            />
           </View>
+        ) : !catalogue ? (
+          <View className="mt-4">
+            <LoadingMessage label="Gathering interests…" />
+          </View>
+        ) : (
+          <>
+            <AppText weight="semibold" size={14} style={{ marginTop: 22, marginBottom: 9 }}>
+              Browse by category
+            </AppText>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+              accessibilityLabel="Interest categories"
+            >
+              {categories.map((category) => {
+                const selected = selectedCategory === category;
+                return (
+                  <Pressable
+                    key={category}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`${category}${selected ? ', selected' : ''}`}
+                    onPress={() => setSelectedCategory(category)}
+                    className={`min-h-12 justify-center rounded-full border px-4 ${
+                      selected
+                        ? 'border-accent bg-accent dark:border-dark-accent dark:bg-dark-accent'
+                        : 'border-border bg-surface dark:border-dark-border dark:bg-dark-surface'
+                    }`}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+                  >
+                    <AppText tone={selected ? 'onAccent' : 'primary'} weight="medium" size={14}>
+                      {category}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <View className="mt-6 mb-3 flex-row items-center justify-between">
+              <AppText weight="semibold" size={18}>
+                {filteredInterests.length} {filteredInterests.length === 1 ? 'interest' : 'interests'}
+              </AppText>
+              {hasFilters ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search and category filters"
+                  onPress={() => {
+                    setSearchText('');
+                    setSelectedCategory(ALL_CATEGORIES);
+                  }}
+                  className="min-h-12 justify-center px-2"
+                >
+                  <AppText tone="secondary" weight="semibold" size={14}>
+                    Clear filters
+                  </AppText>
+                </Pressable>
+              ) : null}
+            </View>
+
+            {filteredInterests.length > 0 ? (
+              filteredInterests.map((interest) => (
+                <InterestCard
+                  key={interest.id}
+                  interest={{ ...interest, starterIdea: interest.starterIdeas[0]?.title }}
+                  onPress={() => router.push({ pathname: '/interest/[slug]', params: { slug: interest.slug } })}
+                />
+              ))
+            ) : catalogue.interests.length === 0 ? (
+              <ErrorMessage
+                title="No interests to show yet."
+                body="New ones are on their way. Check back a little later."
+                actionLabel="Check again"
+                onAction={() => void loadCatalogue()}
+                busy={status === 'loading'}
+              />
+            ) : (
+              <View className="mt-2 rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
+                <AppText weight="semibold" size={20}>
+                  Nothing here just yet.
+                </AppText>
+                <AppText tone="secondary" size={15} style={{ marginTop: 7 }}>
+                  Try a different word or browse all interests.
+                </AppText>
+              </View>
+            )}
+          </>
         )}
-        <AppText tone="secondary" size={12} style={{ marginTop: 5, marginBottom: 12 }}>
-          A small starter collection stored on this device for now.
-        </AppText>
       </View>
     </AppScreen>
   );

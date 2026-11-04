@@ -3,7 +3,7 @@ import { HankenGrotesk_500Medium } from '@expo-google-fonts/hanken-grotesk/500Me
 import { HankenGrotesk_600SemiBold } from '@expo-google-fonts/hanken-grotesk/600SemiBold';
 import { HankenGrotesk_700Bold } from '@expo-google-fonts/hanken-grotesk/700Bold';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, router, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -27,9 +27,20 @@ export default function RootLayout() {
   const colors = scheme === 'dark' ? darkColors : lightColors;
 
   const signedIn = useAuthStore((state) => state.session !== null);
+  const returnTo = useAuthStore((state) => state.returnTo);
+  const segments = useSegments();
 
   useEffect(() => startAuthListener(), []);
   useEffect(() => startReminderSync(), []);
+
+  // Signing in removes the protected sign-in screen, which resets history to the tabs.
+  // Wait until that has happened (we're no longer on sign-in), then reopen where the user was.
+  const leftSignIn = segments[0] !== 'sign-in';
+  useEffect(() => {
+    if (!signedIn || !returnTo || !leftSignIn) return;
+    useAuthStore.setState({ returnTo: null });
+    router.push(returnTo);
+  }, [signedIn, returnTo, leftSignIn]);
 
   useEffect(() => {
     if (error) throw error;
@@ -46,6 +57,7 @@ export default function RootLayout() {
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background }, headerShown: false }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="interest/[slug]" />
         {/* Signing in sends the user back to the tabs automatically. */}
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />

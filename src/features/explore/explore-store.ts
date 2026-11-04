@@ -1,18 +1,18 @@
 import { create } from 'zustand';
 
-import type { InterestCategoryFilter } from '../../data/interest-catalog';
-
 type ExploreStore = {
   searchText: string;
-  selectedCategory: InterestCategoryFilter;
+  /** A category name from the catalogue, or ALL_CATEGORIES ('All'). */
+  selectedCategory: string;
   setSearchText: (searchText: string) => void;
-  setSelectedCategory: (category: InterestCategoryFilter) => void;
+  setSelectedCategory: (category: string) => void;
   resetFilters: () => void;
 };
 
 const initialFilters = {
   searchText: '',
-  selectedCategory: 'All' as const,
+  // ALL_CATEGORIES; a literal so this file stays import-free for the Node tests.
+  selectedCategory: 'All',
 };
 
 export const useExploreStore = create<ExploreStore>((set) => ({

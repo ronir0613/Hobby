@@ -1,12 +1,12 @@
 import { isAuthError } from '@supabase/supabase-js';
-import { SymbolView } from 'expo-symbols';
-import { router } from 'expo-router';
-import { useRef, useState, type ComponentRef } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, View, useColorScheme, type TextInput } from 'react-native';
 import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
+import { BackButton } from '@/components/BackButton';
 import { TextField } from '@/components/TextField';
+import { useAuthStore } from '@/features/auth/auth-store';
 import { signInWithEmail, signInWithGoogle, signUpWithEmail } from '@/services/auth';
 import { darkColors, lightColors } from '@/theme/colors';
 
@@ -48,7 +48,15 @@ export default function SignInScreen() {
   const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
   const creating = mode === 'create';
 
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
+  // Leaving without signing in drops the pending return, so a later sign-in from Profile stays put.
+  // A sign-in in progress keeps it: the Google redirect leaves this screen before the session lands.
+  const signingIn = useRef(false);
+  useEffect(
+    () => () => {
+      if (!signingIn.current && !useAuthStore.getState().session) useAuthStore.setState({ returnTo: null });
+    },
+    [],
+  );
 
   // On success the auth listener updates the session and the protected
   // route sends the user back to the tabs, so nothing else to do here.
@@ -56,11 +64,13 @@ export default function SignInScreen() {
     setError(null);
     setNotice(null);
     setBusy('google');
+    signingIn.current = true;
     try {
       await signInWithGoogle();
     } catch (e) {
       setError(friendlyError(e));
     } finally {
+      signingIn.current = false;
       setBusy(null);
     }
   }
@@ -78,6 +88,7 @@ export default function SignInScreen() {
       return;
     }
     setBusy('email');
+    signingIn.current = true;
     try {
       if (creating) {
         const { needsConfirmation } = await signUpWithEmail(trimmed, password);
@@ -90,6 +101,7 @@ export default function SignInScreen() {
     } catch (e) {
       setError(friendlyError(e));
     } finally {
+      signingIn.current = false;
       setBusy(null);
     }
   }
@@ -103,16 +115,7 @@ export default function SignInScreen() {
   return (
     <AppScreen>
       <View className="pb-8 pt-3">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={goBack}
-          hitSlop={8}
-          className="h-12 w-12 items-center justify-center rounded-full"
-          style={({ pressed }) => ({ marginLeft: -12, opacity: pressed ? 0.7 : 1 })}
-        >
-          <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.foreground} size={24} />
-        </Pressable>
+        <BackButton fallback="/profile" />
 
         <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.5, marginTop: 10 }}>
           {creating ? 'NEW HERE' : 'WELCOME BACK'}

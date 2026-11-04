@@ -1,20 +1,20 @@
-import type {
-  Interest,
-  InterestCategoryFilter,
-} from '../../data/interest-catalog';
+/** The category filter value that shows every interest. */
+export const ALL_CATEGORIES = 'All';
 
-export function filterInterests(
-  interests: readonly Interest[],
+type FilterableInterest = { name: string; category: string; description: string | null };
+
+export function filterInterests<T extends FilterableInterest>(
+  interests: readonly T[],
   searchText: string,
-  selectedCategory: InterestCategoryFilter,
-): Interest[] {
+  selectedCategory: string,
+): T[] {
   const query = searchText.trim().toLowerCase();
 
   return interests.filter((interest) => {
     const matchesCategory =
-      selectedCategory === 'All' || interest.category === selectedCategory;
+      selectedCategory === ALL_CATEGORIES || interest.category === selectedCategory;
     const searchableText =
-      `${interest.name} ${interest.category} ${interest.description}`.toLowerCase();
+      `${interest.name} ${interest.category} ${interest.description ?? ''}`.toLowerCase();
 
     return matchesCategory && (!query || searchableText.includes(query));
   });

@@ -9,7 +9,8 @@ The app uses a custom, quiet visual system: warm paper surfaces, botanical green
 ## Interface decisions
 
 - The four primary tabs are Discover, Explore, Media, and Profile.
-- Search and category chips work against local starter content. The screen labels this content as local so it does not imply a connected catalogue.
+- Explore reads the catalogue (categories, interests, starter ideas) from Supabase, with a loading line, a muted error box with "Try again", and an empty state. Search and category chips filter the loaded catalogue. Discover still shows local starter content, but its cards open the same live detail screen (local ids match catalogue slugs).
+- Tapping an interest card opens its detail screen (category, name, description, hobby/habit label, first small step, "Try this"). "Try this" adds a planned attempt; signed-out users are sent to sign-in first and brought back to the interest afterwards. Success uses the soft green notice box.
 - Media explains which later-phase capabilities are not connected yet. Profile shows the signed-in account (sign out, delete account with confirmation) or a sign-in prompt; browsing never requires an account.
 - The tab bar pairs text labels with `expo-symbols` icons (Material Symbols on Android: spa, search, photo_library, person). The active tab is marked by the accent colour. Buttons, chips, and filter controls have a 48dp minimum target height.
 - Sign-in is a full screen opened from Profile: Google first, then email and password with a sign-in / create-account switch. Errors use plain, non-blaming copy in a muted box; there is no separate danger colour yet.
