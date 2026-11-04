@@ -3,7 +3,17 @@ import type { Tables } from '@/types/database.types';
 
 import { toLocalDate, type CheckinResult } from './checkin-rules';
 
-export { shouldAskAfterSkips, toLocalDate, type CheckinResult } from './checkin-rules';
+export {
+  checkinDays,
+  dayLabel,
+  latestCheckinLine,
+  shouldAskAfterSkips,
+  currentRun,
+  statusAfterCheckins,
+  TRIED_DAYS_TO_COMPLETE,
+  toLocalDate,
+  type CheckinResult,
+} from './checkin-rules';
 
 export type Checkin = Omit<Tables<'checkins'>, 'result'> & { result: CheckinResult };
 
@@ -13,6 +23,16 @@ export async function listCheckins(attemptId: string): Promise<Checkin[]> {
     .from('checkins')
     .select('*')
     .eq('attempt_id', attemptId)
+    .order('local_date', { ascending: false });
+  if (error) throw error;
+  return data as Checkin[];
+}
+
+/** All of the signed-in user's check-ins (RLS limits rows to the owner), newest first. */
+export async function listMyCheckins(): Promise<Checkin[]> {
+  const { data, error } = await supabase
+    .from('checkins')
+    .select('*')
     .order('local_date', { ascending: false });
   if (error) throw error;
   return data as Checkin[];

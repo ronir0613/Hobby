@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(22);
 
 insert into auth.users (id) values ('00000000-0000-0000-0000-0000000000a1');
 
@@ -111,8 +111,19 @@ select throws_ok(
   $$ insert into public.attempts (interest_id, starter_idea_id)
      select i.id, s.id from public.interests i, public.starter_ideas s
      join public.interests si on si.id = s.interest_id
-     where i.slug = 'guitar' and si.slug = 'drawing' $$,
+     where i.slug = 'cooking' and si.slug = 'drawing' $$,
   '23503', null, 'a starter idea must belong to the attempt''s interest'
+);
+
+-- One attempt per interest; custom attempts are not limited
+select throws_ok(
+  $$ insert into public.attempts (interest_id) select id from public.interests where slug = 'guitar' $$,
+  '23505', null, 'a second attempt for the same interest is rejected'
+);
+insert into public.attempts (custom_title) values ('Juggling');
+select lives_ok(
+  $$ insert into public.attempts (custom_title) values ('Juggling') $$,
+  'custom attempts can repeat'
 );
 
 -- Deleting an attempt removes its history

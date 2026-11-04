@@ -7,8 +7,8 @@
 
 - **Android / Play Store first.** iOS later.
 - **Reminders are in the MVP.** Scheduled locally with `expo-notifications`; Supabase stores only the settings (`notification_preferences`).
-- **Check-ins can be corrected or undone.** Users can change `tried`/`skipped` or delete a check-in.
-- **Guilt-free status.** Attempts can move between `planned`, `active`, `completed` and `dropped` in any direction (retry, reopen, pick back up).
+- **Check-ins are for today only** (changed 2026-11-04). Today is answered `tried` or `skipped` and can be switched until midnight; past days are locked. There is no undo in the app.
+- **Status follows check-ins** (changed 2026-11-04); the user never picks it. No check-ins: `planned`. First check-in: `active`. 7 tried days in the current go: `completed`. Two skipped days in a row: `dropped` ("Maybe it wasn't your thing"). The only user action is "Give it another go" on a completed or dropped hobby, which moves it back to `planned` and keeps the history; check-ins from before that no longer count (the current go starts at `started_at`).
 - **Auth:** email + Google. Apple is deferred until iOS.
 - **Account deletion is in the MVP** (Play policy): an Edge Function deletes the user's Storage files, then the Auth user. All rows cascade.
 - **Hosted dev project, no Docker.** Migrations are pushed with `supabase db push` to the linked project.
@@ -26,11 +26,13 @@ What the database enforces:
 - `attempts_lifecycle` trigger owns `started_at` / `completed_at` / `dropped_at`.
 - First check-in on a planned attempt makes it `active`; deleting the last check-in of an `active` attempt puts it back to `planned`. Completed/dropped attempts are not touched by check-in changes.
 - One check-in per attempt per day; no check-ins more than a day ahead of UTC.
+- One attempt per catalogue interest per user (partial unique index, migration `20261104170000`);
+  coming back to a hobby moves the same attempt back to `planned`. Custom attempts are not limited.
 - Private `activity-media` bucket, 10 MiB, JPEG/PNG/WebP, path `<user>/<attempt>/<uuid>.<ext>`, owner-only.
 
 What lives in the app instead:
 
-- The "two skipped days in a row → ask what to do" prompt (computed from check-ins).
+- The completed/dropped rules (`statusAfterCheckins` and `currentRun` in `src/services/checkin-rules.ts`). The database still lets clients set any status and delete check-ins; the app just doesn't offer it.
 - Photo delete order: remove the file, then the metadata row. Delete an attempt's files before deleting the attempt.
 - Image compression/conversion before upload (`expo-image-manipulator`).
 
@@ -43,9 +45,11 @@ and its cards open the live detail screen by slug.
 
 ## Verification
 
-`supabase/tests/*.sql` are pgTAP tests (55 assertions: schema, lifecycle/undo, RLS between two
+`supabase/tests/*.sql` are pgTAP tests (57 assertions: schema, lifecycle/undo, RLS between two
 users, Storage paths). They were run against PostgreSQL 16 with stand-ins for Supabase's `auth`
-and `storage` schemas. They have **not** yet run on the hosted project.
+and `storage` schemas. `attempt_lifecycle_test.sql` (22 assertions, incl. one attempt per
+interest) has also passed on hosted, run through `supabase db query --remote` inside a
+rolled-back transaction (no Docker).
 
 ## Account deletion
 
@@ -90,11 +94,12 @@ are still checked with the user first.
    an attempt.
    *Done:* the 9 seeded interests load from hosted with loading and error states, and "Try this"
    creates a `planned` attempt visible in the database.
-8. **My hobbies and check-ins.** A list of the user's attempts; check in tried/skipped, correct or
-   undo a check-in, move status freely between planned/active/completed/dropped, and the
-   two-skipped-days prompt.
-   *Done:* the first check-in makes an attempt `active`, undo returns it to `planned`, and the
-   prompt appears after two skips.
+8. **My hobbies and check-ins.** A list of the user's attempts on Profile; an attempt screen to
+   answer today tried/skipped (switchable until midnight), a read-only history, and a read-only
+   status that follows the rules above. One attempt per interest.
+   *Done:* the first check-in makes an attempt `active`, two skipped days in a row drop it with the
+   "Maybe it wasn't your thing" note, the 7th tried day completes it, and "Give it another go" returns
+   it to `planned`.
 9. **Reminder settings.** On/off, time and days, saved to `notification_preferences` and scheduled
    locally.
    *Done:* changing the time on device delivers a notification at the new time, turning reminders

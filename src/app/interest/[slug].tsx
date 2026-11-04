@@ -9,7 +9,7 @@ import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { requireSignIn, useAuthStore } from '@/features/auth/auth-store';
 import { interestTypeLabel } from '@/features/explore/catalogue-model';
 import { ensureCatalogue, loadCatalogue, useCatalogueStore } from '@/features/explore/catalogue-store';
-import { createAttempt } from '@/services/attempts';
+import { giveAnotherGo, loadHobbies, startAttempt, useHobbiesStore } from '@/features/hobbies/hobbies-store';
 
 function friendlyError(error: unknown) {
   const message = typeof error === 'object' && error && 'message' in error ? String(error.message) : '';
@@ -25,12 +25,20 @@ export default function InterestScreen() {
   const interest = useCatalogueStore((state) => state.catalogue?.interests.find((item) => item.slug === slug));
   const hasCatalogue = useCatalogueStore((state) => state.catalogue !== null);
   const signedIn = useAuthStore((state) => state.session !== null);
+  const hobbiesStatus = useHobbiesStore((state) => state.status);
+  const existing = useHobbiesStore((state) =>
+    interest ? state.attempts.find((attempt) => attempt.interest_id === interest.id) : undefined,
+  );
   const [saving, setSaving] = useState(false);
-  const [planned, setPlanned] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Opened directly (deep link) before Explore loaded the catalogue.
   useEffect(() => ensureCatalogue(), []);
+  // Know whether this interest is already in My hobbies (one attempt per interest).
+  useEffect(() => {
+    if (signedIn && useHobbiesStore.getState().status === 'idle') void loadHobbies();
+  }, [signedIn]);
 
   async function tryThis() {
     if (!interest) return;
@@ -41,8 +49,13 @@ export default function InterestScreen() {
     setError(null);
     setSaving(true);
     try {
-      await createAttempt({ interest_id: interest.id, starter_idea_id: interest.starterIdeas[0]?.id ?? null });
-      setPlanned(true);
+      if (!existing) {
+        await startAttempt(interest.id, interest.starterIdeas[0]?.id ?? null);
+        setNotice('Added to your plans. Start whenever it suits you.');
+      } else if (existing.status === 'completed' || existing.status === 'dropped') {
+        await giveAnotherGo(existing.id);
+        setNotice('Back in your plans. Your new go starts with your next check-in.');
+      }
     } catch (e) {
       if (__DEV__) console.warn('Creating an attempt failed', e);
       setError(friendlyError(e));
@@ -115,25 +128,54 @@ export default function InterestScreen() {
             </AppText>
           </View>
         ) : null}
-        {planned ? (
+        {notice ? (
           <View accessibilityLiveRegion="polite" className="mt-4 rounded-2xl bg-secondary p-4 dark:bg-dark-secondary">
-            <AppText size={14}>Added to your plans. Start whenever it suits you.</AppText>
+            <AppText size={14}>{notice}</AppText>
           </View>
         ) : null}
 
-        <ActionButton
-          label={planned ? 'In your plans' : saving ? 'Adding…' : 'Try this'}
-          onPress={tryThis}
-          disabled={saving || planned}
-          style={{ marginTop: 20 }}
-        />
-        {!planned ? (
-          <AppText tone="secondary" size={13} style={{ marginTop: 10, textAlign: 'center' }}>
-            {signedIn
-              ? 'This adds it to your plans. Nothing starts until you are ready.'
-              : 'You will sign in first, so your plans stay with your account.'}
-          </AppText>
-        ) : null}
+        {signedIn && hobbiesStatus !== 'ready' && hobbiesStatus !== 'error' ? (
+          <LoadingMessage label="Checking your hobbies…" />
+        ) : existing && (existing.status === 'planned' || existing.status === 'active') ? (
+          <>
+            <ActionButton
+              label="Open in My hobbies"
+              onPress={() => router.push({ pathname: '/attempt/[id]', params: { id: existing.id } })}
+              style={{ marginTop: 20 }}
+            />
+            {!notice ? (
+              <AppText tone="secondary" size={13} style={{ marginTop: 10, textAlign: 'center' }}>
+                {existing.status === 'active' ? 'You are already giving this a go.' : 'This is already in your plans.'}
+              </AppText>
+            ) : null}
+          </>
+        ) : existing ? (
+          <>
+            <ActionButton
+              label={saving ? 'Starting…' : 'Give it another go'}
+              onPress={tryThis}
+              disabled={saving}
+              style={{ marginTop: 20 }}
+            />
+            <AppText tone="secondary" size={13} style={{ marginTop: 10, textAlign: 'center' }}>
+              {`${existing.status === 'completed' ? 'You gave this a real go before.' : 'You set this aside before.'} This starts a new go, and your earlier days stay in its history.`}
+            </AppText>
+          </>
+        ) : (
+          <>
+            <ActionButton
+              label={saving ? 'Adding…' : 'Try this'}
+              onPress={tryThis}
+              disabled={saving}
+              style={{ marginTop: 20 }}
+            />
+            <AppText tone="secondary" size={13} style={{ marginTop: 10, textAlign: 'center' }}>
+              {signedIn
+                ? 'This adds it to your plans. Nothing starts until you are ready.'
+                : 'You will sign in first, so your plans stay with your account.'}
+            </AppText>
+          </>
+        )}
       </>
     );
   }

@@ -4,6 +4,7 @@ import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
 import { signInMethodLabel, useAuthStore } from '@/features/auth/auth-store';
+import { MyHobbiesSection } from '@/features/hobbies/MyHobbiesSection';
 import { deleteAccount, signOut } from '@/services/auth';
 import { darkColors, lightColors } from '@/theme/colors';
 
@@ -69,7 +70,9 @@ export default function ProfileScreen() {
           </View>
         ) : session ? (
           <>
-            <View className="mt-8 rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
+            <MyHobbiesSection />
+
+            <View className="mt-10 rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
               <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.1 }}>
                 SIGNED IN WITH {signInMethodLabel(session).toUpperCase()}
               </AppText>

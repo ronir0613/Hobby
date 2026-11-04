@@ -28,6 +28,7 @@ export function ActionButton({ label, href, variant = 'primary', style, disabled
         tone={variant === 'primary' ? 'onAccent' : 'primary'}
         size={15}
         accessibilityRole="none"
+        style={{ textAlign: 'center' }}
       >
         {label}
       </AppText>

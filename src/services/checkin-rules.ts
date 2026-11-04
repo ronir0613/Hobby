@@ -36,3 +36,55 @@ export function shouldAskAfterSkips(checkins: readonly CheckinDay[], today?: str
   }
   return true;
 }
+
+/** Today and yesterday on the device calendar, as YYYY-MM-DD. */
+export function checkinDays(now: Date = new Date()) {
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  return { today: toLocalDate(now), yesterday: toLocalDate(yesterday) };
+}
+
+/** "Today", "Yesterday", or a short date such as "Mon, 2 Nov". */
+export function dayLabel(localDate: string, now: Date = new Date()): string {
+  const { today, yesterday } = checkinDays(now);
+  if (localDate === today) return 'Today';
+  if (localDate === yesterday) return 'Yesterday';
+  const [y, m, d] = localDate.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+/** One short line for a card, e.g. "Tried today" or "Skipped yesterday". */
+export function latestCheckinLine(checkins: readonly CheckinDay[], now: Date = new Date()): string | null {
+  const latest = [...checkins].sort((x, y) => y.local_date.localeCompare(x.local_date))[0];
+  if (!latest) return null;
+  const verb = latest.result === 'tried' ? 'Tried' : 'Skipped';
+  const label = dayLabel(latest.local_date, now);
+  return label === 'Today' || label === 'Yesterday' ? `${verb} ${label.toLowerCase()}` : `${verb} on ${label}`;
+}
+
+/** A hobby is completed on its 7th tried day (skips in between don't reset the count). */
+export const TRIED_DAYS_TO_COMPLETE = 7;
+
+export type RunCheckin = CheckinDay & { created_at: string };
+
+/**
+ * The check-ins that belong to the current go. "Give it another go" moves the attempt back to
+ * planned, which clears started_at; the next check-in sets it again (same transaction, so the
+ * check-in's created_at equals started_at). Older check-ins stay as history but no longer count.
+ */
+export function currentRun<T extends RunCheckin>(checkins: readonly T[], startedAt: string | null): T[] {
+  if (!startedAt) return [];
+  const start = Date.parse(startedAt);
+  return checkins.filter((c) => Date.parse(c.created_at) >= start);
+}
+
+/**
+ * Status follows the check-ins of the current go: 7 tried days → completed; two skipped days in a
+ * row (the latest two answers) → dropped; otherwise unchanged. Completed and dropped stay put
+ * until the user gives it another go.
+ */
+export function statusAfterCheckins(status: string, run: readonly CheckinDay[]): string {
+  if (status !== 'active') return status;
+  if (run.filter((c) => c.result === 'tried').length >= TRIED_DAYS_TO_COMPLETE) return 'completed';
+  if (shouldAskAfterSkips(run)) return 'dropped';
+  return status;
+}

@@ -58,6 +58,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background }, headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="interest/[slug]" />
+        <Stack.Screen name="attempt/[id]" />
         {/* Signing in sends the user back to the tabs automatically. */}
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />
