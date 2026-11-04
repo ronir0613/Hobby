@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../../global.css';
+import { startReminderSync } from '@/services/reminder-scheduler';
 import { darkColors, lightColors } from '@/theme/colors';
 
 void SplashScreen.preventAutoHideAsync();
@@ -23,6 +24,8 @@ export default function RootLayout() {
   });
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const colors = scheme === 'dark' ? darkColors : lightColors;
+
+  useEffect(() => startReminderSync(), []);
 
   useEffect(() => {
     if (error) throw error;

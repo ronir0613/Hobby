@@ -3,6 +3,7 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
 import { supabase } from '@/lib/supabase/client';
+import { cancelAllReminders } from '@/services/reminder-scheduler';
 
 // Every auth email link and the Google redirect come back here.
 // Add this URL (and the Expo Go one in development) to Supabase Auth → URL Configuration.
@@ -86,7 +87,11 @@ export async function signInWithGoogle(): Promise<Session | null> {
   return completeAuthFromUrl(result.url);
 }
 
+/** Local reminders belong to the signed-in user, so clear them first. Never blocks sign-out. */
+const clearReminders = () => cancelAllReminders().catch(() => undefined);
+
 export async function signOut() {
+  await clearReminders();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
@@ -115,6 +120,7 @@ export async function deleteAccount() {
   }
   if (!data?.ok) throw new Error('Account deletion failed.');
 
+  await clearReminders();
   // The user no longer exists on the server, so only clear the local session.
   const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
   if (signOutError) throw signOutError;

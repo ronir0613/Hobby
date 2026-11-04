@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase/client';
 import type { Tables, TablesInsert } from '@/types/database.types';
 
-// Settings only. Scheduling with expo-notifications happens on the device (step 5).
+// Settings only. Screens should call updateReminderSettings() in reminder-scheduler.ts,
+// which asks for permission and reschedules the local notifications.
 
 export type ReminderSettings = Tables<'notification_preferences'>;
 export type ReminderSettingsChanges = Pick<
