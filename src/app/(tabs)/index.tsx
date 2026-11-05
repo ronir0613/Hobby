@@ -1,14 +1,26 @@
 import { router } from 'expo-router';
+import { useEffect, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
-import { INTERESTS } from '@/data/interest-catalog';
+import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
+import { discoverPicks, formatMinutes, localDayNumber, type CatalogueInterest } from '@/features/explore/catalogue-model';
+import { ensureCatalogue, loadCatalogue, useCatalogueStore } from '@/features/explore/catalogue-store';
+
+/** The first starter idea's time, else a typical session. */
+function minutesToBegin(interest: CatalogueInterest) {
+  return interest.starterIdeas[0]?.estimatedMinutes ?? interest.sessionMinutes;
+}
 
 export default function DiscoverScreen() {
-  const firstInterest = INTERESTS[0];
-  // Local ids match the catalogue slugs, so the detail screen loads the live interest.
+  const status = useCatalogueStore((state) => state.status);
+  const catalogue = useCatalogueStore((state) => state.catalogue);
   const openInterest = (slug: string) => router.push({ pathname: '/interest/[slug]', params: { slug } });
+
+  useEffect(() => ensureCatalogue(), []);
+  // Today's picks; they change at local midnight (or when the catalogue reloads).
+  const picks = useMemo(() => discoverPicks(catalogue?.interests ?? [], localDayNumber(new Date())), [catalogue]);
 
   return (
     <AppScreen>
@@ -23,72 +35,115 @@ export default function DiscoverScreen() {
           Find an interest that feels like you, then try it in a small, unhurried way.
         </AppText>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityHint="Opens this interest"
-          onPress={() => openInterest(firstInterest.id)}
-          className="mt-8 overflow-hidden rounded-[28px] bg-secondary p-6 dark:bg-dark-secondary"
-          style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
-        >
-          <View
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            className="absolute -right-7 -top-8 h-36 w-36 rounded-full border-[18px] border-accent-soft dark:border-dark-accent-soft"
-          />
-          <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.3 }}>
-            A GENTLE PLACE TO START
-          </AppText>
-          <AppText weight="semibold" size={26} style={{ marginTop: 17 }}>
-            {firstInterest.name}
-          </AppText>
-          <AppText size={16} style={{ marginTop: 5, maxWidth: 300 }}>
-            {firstInterest.description}
-          </AppText>
-          <View className="mt-6 self-start rounded-full bg-surface px-4 py-2 dark:bg-dark-surface">
-            <AppText weight="medium" size={13}>
-              About {firstInterest.estimatedMinutes} minutes
-            </AppText>
+        {!catalogue && status === 'error' ? (
+          <View className="mt-8">
+            <ErrorMessage
+              title="We couldn't load ideas just now."
+              body="Check your connection, then try again."
+              onAction={() => void loadCatalogue()}
+            />
           </View>
-          <View className="mt-6 border-t border-border/70 pt-4 dark:border-dark-border">
-            <AppText tone="secondary" size={13}>
-              TRY THIS
-            </AppText>
-            <AppText weight="medium" size={17} style={{ marginTop: 4, maxWidth: 420 }}>
-              {firstInterest.starterIdea}
-            </AppText>
+        ) : !catalogue ? (
+          <View className="mt-6">
+            <LoadingMessage label="Finding a few ideas…" />
           </View>
-        </Pressable>
+        ) : !picks ? (
+          <View className="mt-8">
+            <ErrorMessage
+              title="No interests to show yet."
+              body="New ones are on their way. Check back a little later."
+              actionLabel="Check again"
+              onAction={() => void loadCatalogue()}
+              busy={status === 'loading'}
+            />
+          </View>
+        ) : (
+          <FeaturedCard interest={picks.featured} onPress={() => openInterest(picks.featured.slug)} />
+        )}
 
         <ActionButton label="Explore all interests" href="/explore" style={{ marginTop: 22 }} />
 
-        <View className="mt-10">
-          <AppText weight="semibold" size={21}>
-            Or start anywhere
-          </AppText>
-          <AppText tone="secondary" size={15} style={{ marginTop: 4, marginBottom: 13 }}>
-            No plan needed. Just follow a small spark.
-          </AppText>
-          <View className="flex-row gap-3">
-            {INTERESTS.slice(4, 6).map((interest) => (
-              <Pressable
-                key={interest.id}
-                accessibilityRole="button"
-                accessibilityHint="Opens this interest"
-                onPress={() => openInterest(interest.id)}
-                className="min-h-24 flex-1 justify-between rounded-2xl border border-border bg-surface p-4 dark:border-dark-border dark:bg-dark-surface"
-                style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
-              >
-                <AppText weight="semibold" size={16}>
-                  {interest.name}
-                </AppText>
-                <AppText tone="secondary" size={13}>
-                  {interest.estimatedMinutes} min to begin
-                </AppText>
-              </Pressable>
-            ))}
+        {picks && picks.more.length > 0 ? (
+          <View className="mt-10">
+            <AppText weight="semibold" size={21}>
+              Or start anywhere
+            </AppText>
+            <AppText tone="secondary" size={15} style={{ marginTop: 4, marginBottom: 13 }}>
+              No plan needed. Just follow a small spark.
+            </AppText>
+            <View className="flex-row gap-3">
+              {picks.more.map((interest) => {
+                const minutes = minutesToBegin(interest);
+                return (
+                  <Pressable
+                    key={interest.id}
+                    accessibilityRole="button"
+                    accessibilityHint="Opens this interest"
+                    onPress={() => openInterest(interest.slug)}
+                    className="min-h-24 flex-1 justify-between rounded-2xl border border-border bg-surface p-4 dark:border-dark-border dark:bg-dark-surface"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
+                  >
+                    <AppText weight="semibold" size={16}>
+                      {interest.name}
+                    </AppText>
+                    {minutes ? (
+                      <AppText tone="secondary" size={13}>
+                        {formatMinutes(minutes)} to begin
+                      </AppText>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-        </View>
+        ) : null}
       </View>
     </AppScreen>
+  );
+}
+
+function FeaturedCard({ interest, onPress }: { interest: CatalogueInterest; onPress: () => void }) {
+  const minutes = minutesToBegin(interest);
+  const starter = interest.starterIdeas[0];
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityHint="Opens this interest"
+      onPress={onPress}
+      className="mt-8 overflow-hidden rounded-[28px] bg-secondary p-6 dark:bg-dark-secondary"
+      style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
+    >
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        className="absolute -right-7 -top-8 h-36 w-36 rounded-full border-[18px] border-accent-soft dark:border-dark-accent-soft"
+      />
+      <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.3 }}>
+        A GENTLE PLACE TO START
+      </AppText>
+      <AppText weight="semibold" size={26} style={{ marginTop: 17 }}>
+        {interest.name}
+      </AppText>
+      <AppText size={16} style={{ marginTop: 5, maxWidth: 300 }}>
+        {interest.description}
+      </AppText>
+      {minutes ? (
+        <View className="mt-6 self-start rounded-full bg-surface px-4 py-2 dark:bg-dark-surface">
+          <AppText weight="medium" size={13}>
+            About {formatMinutes(minutes)}
+          </AppText>
+        </View>
+      ) : null}
+      {starter ? (
+        <View className="mt-6 border-t border-border/70 pt-4 dark:border-dark-border">
+          <AppText tone="secondary" size={13}>
+            TRY THIS
+          </AppText>
+          <AppText weight="medium" size={17} style={{ marginTop: 4, maxWidth: 420 }}>
+            {starter.title}
+          </AppText>
+        </View>
+      ) : null}
+    </Pressable>
   );
 }

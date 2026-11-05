@@ -5,9 +5,9 @@ import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
 import { BackButton } from '@/components/BackButton';
+import { InterestFacts, InterestGuide } from '@/components/InterestGuide';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { useAuthStore } from '@/features/auth/auth-store';
-import { interestTypeLabel } from '@/features/explore/catalogue-model';
 import { ensureCatalogue, loadCatalogue, useCatalogueStore } from '@/features/explore/catalogue-store';
 import { giveAnotherGo, loadHobbies, startAttempt, useHobbiesStore } from '@/features/hobbies/hobbies-store';
 
@@ -82,7 +82,6 @@ export default function InterestScreen() {
       />
     );
   } else {
-    const starter = interest.starterIdeas[0];
     body = (
       <>
         <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.5, textTransform: 'uppercase' }}>
@@ -96,27 +95,8 @@ export default function InterestScreen() {
             {interest.description}
           </AppText>
         ) : null}
-        <View className="mt-5 self-start rounded-full bg-muted px-4 py-2 dark:bg-dark-muted">
-          <AppText weight="medium" size={13}>
-            {interestTypeLabel(interest.type)}
-          </AppText>
-        </View>
-
-        {starter ? (
-          <View className="mt-7 rounded-card border border-border bg-surface p-5 dark:border-dark-border dark:bg-dark-surface">
-            <AppText tone="secondary" size={13}>
-              A first small step
-            </AppText>
-            <AppText weight="semibold" size={19} style={{ marginTop: 4 }}>
-              {starter.title}
-            </AppText>
-            {starter.estimatedMinutes ? (
-              <AppText tone="secondary" size={14} style={{ marginTop: 6 }}>
-                About {starter.estimatedMinutes} minutes
-              </AppText>
-            ) : null}
-          </View>
-        ) : null}
+        <InterestFacts interest={interest} />
+        <InterestGuide interest={interest} />
 
         {error ? (
           <View accessibilityLiveRegion="polite" className="mt-4 rounded-2xl border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted">
@@ -138,7 +118,7 @@ export default function InterestScreen() {
             <ActionButton
               label="Open in My hobbies"
               onPress={() => router.push({ pathname: '/attempt/[id]', params: { id: existing.id } })}
-              style={{ marginTop: 20 }}
+              style={{ marginTop: 32 }}
             />
             {!notice ? (
               <AppText tone="secondary" size={13} style={{ marginTop: 10, textAlign: 'center' }}>
@@ -152,7 +132,7 @@ export default function InterestScreen() {
               label={saving ? 'Starting…' : 'Give it another go'}
               onPress={tryThis}
               disabled={saving}
-              style={{ marginTop: 20 }}
+              style={{ marginTop: 32 }}
             />
             <AppText tone="secondary" size={13} style={{ marginTop: 10, textAlign: 'center' }}>
               {`${existing.status === 'completed' ? 'You gave this a real go before.' : 'You set this aside before.'} This starts a new go, and your earlier days stay in its history.`}
@@ -164,7 +144,7 @@ export default function InterestScreen() {
               label={saving ? 'Adding…' : 'Try this'}
               onPress={tryThis}
               disabled={saving}
-              style={{ marginTop: 20 }}
+              style={{ marginTop: 32 }}
             />
             <AppText tone="secondary" size={13} style={{ marginTop: 10, textAlign: 'center' }}>
               {signedIn

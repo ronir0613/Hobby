@@ -148,37 +148,55 @@ export type Database = {
       interests: {
         Row: {
           category_id: string
+          cost: string
           cover_image_path: string | null
           created_at: string
           description: string | null
           id: string
           is_published: boolean
+          moods: string[]
           name: string
+          needs: string
+          session_minutes: number
+          setting: string
           slug: string
+          social: string
           type: string
           updated_at: string
         }
         Insert: {
           category_id: string
+          cost: string
           cover_image_path?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_published?: boolean
+          moods: string[]
           name: string
+          needs: string
+          session_minutes: number
+          setting: string
           slug: string
+          social: string
           type: string
           updated_at?: string
         }
         Update: {
           category_id?: string
+          cost?: string
           cover_image_path?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_published?: boolean
+          moods?: string[]
           name?: string
+          needs?: string
+          session_minutes?: number
+          setting?: string
           slug?: string
+          social?: string
           type?: string
           updated_at?: string
         }

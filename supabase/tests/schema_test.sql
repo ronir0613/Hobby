@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(20);
 
 select has_table('public', t, 'table ' || t || ' exists')
 from unnest(array['profiles','categories','interests','starter_ideas','attempts',
@@ -11,9 +11,27 @@ select ok(
   'RLS is enabled on every public table'
 );
 
-select is((select count(*)::int from public.categories where is_published), 9, 'seed: 9 categories');
-select is((select count(*)::int from public.interests where is_published), 9, 'seed: 9 interests');
-select is((select count(*)::int from public.starter_ideas where is_published), 9, 'seed: 9 starter ideas');
+select is((select count(*)::int from public.categories where is_published), 10, 'catalogue: 10 categories');
+select is((select count(*)::int from public.interests where is_published), 68, 'catalogue: 68 interests');
+select is((select count(*)::int from public.starter_ideas where is_published), 204, 'catalogue: 204 starter ideas');
+select is(
+  (select count(*)::int from public.interests
+   where slug in ('photography','drawing','guitar','cooking','gardening','cycling','meditation','reading','city-walks')),
+  9, 'catalogue: the 9 original slugs are kept');
+select ok(
+  (select bool_and(n between 2 and 3) from (
+     select count(s.id) as n from public.interests i
+     left join public.starter_ideas s on s.interest_id = i.id and s.is_published
+     where i.is_published group by i.id) t),
+  'catalogue: every interest has 2 or 3 starter ideas');
+select ok(
+  not exists (select 1 from public.starter_ideas
+              where is_published and (difficulty is null or estimated_minutes is null
+                                      or coalesce(instructions, '') = '')),
+  'catalogue: every starter idea has steps, minutes and a difficulty');
+select ok(
+  not exists (select 1 from public.interests where is_published and coalesce(description, '') = ''),
+  'catalogue: every interest has a description');
 
 select results_eq(
   $$ select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'activity-media' $$,

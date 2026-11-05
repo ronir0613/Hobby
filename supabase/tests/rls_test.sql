@@ -6,13 +6,15 @@ insert into auth.users (id) values
   ('00000000-0000-0000-0000-0000000000b2');
 
 -- An unpublished interest, invisible to everyone
-insert into public.interests (category_id, name, slug, type, is_published)
-select id, 'Secret', 'secret', 'hobby', false from public.categories where slug = 'music';
+insert into public.interests
+  (category_id, name, slug, type, needs, setting, social, session_minutes, cost, moods, is_published)
+select id, 'Secret', 'secret', 'hobby', 'Nothing.', 'indoor', 'solo', 10, 'free', array['calm'], false
+from public.categories where slug = 'music';
 
 -- ---------- anonymous ----------
 set local role anon;
-select is((select count(*)::int from public.interests), 9, 'anon sees only published interests');
-select is((select count(*)::int from public.starter_ideas), 9, 'anon can read starter ideas');
+select is((select count(*)::int from public.interests), 68, 'anon sees only published interests');
+select is((select count(*)::int from public.starter_ideas), 204, 'anon can read starter ideas');
 select throws_ok($$ insert into public.categories (name, slug) values ('x', 'x') $$,
   '42501', null, 'anon cannot write the catalogue');
 select throws_ok($$ select * from public.attempts $$, '42501', null, 'anon cannot read attempts');
@@ -92,8 +94,11 @@ reset role;
 -- ---------- A's data is untouched ----------
 select is((select custom_title from public.attempts where id = '20000000-0000-0000-0000-00000000000a'),
   'A attempt', 'B''s update did nothing');
-select is((select count(*)::int from public.checkins), 1, 'B''s delete did nothing to check-ins');
-select is((select count(*)::int from storage.objects), 1, 'B''s delete did nothing to files');
+-- Scoped to A's rows: hosted also holds real users' data.
+select is((select count(*)::int from public.checkins where attempt_id = '20000000-0000-0000-0000-00000000000a'),
+  1, 'B''s delete did nothing to check-ins');
+select is((select count(*)::int from storage.objects where name like '00000000-0000-0000-0000-0000000000a1/%'),
+  1, 'B''s delete did nothing to files');
 
 select * from finish();
 rollback;

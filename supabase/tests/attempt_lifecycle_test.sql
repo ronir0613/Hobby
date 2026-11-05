@@ -111,7 +111,7 @@ select throws_ok(
   $$ insert into public.attempts (interest_id, starter_idea_id)
      select i.id, s.id from public.interests i, public.starter_ideas s
      join public.interests si on si.id = s.interest_id
-     where i.slug = 'cooking' and si.slug = 'drawing' $$,
+     where i.slug = 'cooking' and si.slug = 'drawing' and s.sort_order = 1 $$,
   '23503', null, 'a starter idea must belong to the attempt''s interest'
 );
 

@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { interestTypeLabel, toCatalogue } from './catalogue-model.ts';
+import {
+  difficultyLabel,
+  discoverPicks,
+  formatMinutes,
+  guideFacts,
+  interestTypeLabel,
+  localDayNumber,
+  toCatalogue,
+  toSteps,
+} from './catalogue-model.ts';
 
 const music = { id: 'c2', slug: 'music', name: 'Music', sort_order: 2 };
 const arts = { id: 'c1', slug: 'arts-crafts', name: 'Arts & Crafts', sort_order: 1 };
@@ -11,8 +20,23 @@ const row = (overrides) => ({
   name: overrides.slug,
   description: null,
   type: 'hobby',
+  needs: null,
+  setting: null,
+  social: null,
+  session_minutes: null,
+  cost: null,
+  moods: null,
   category: arts,
   starter_ideas: [],
+  ...overrides,
+});
+
+const idea = (overrides) => ({
+  id: overrides.title,
+  estimated_minutes: null,
+  sort_order: 1,
+  difficulty: null,
+  instructions: null,
   ...overrides,
 });
 
@@ -31,27 +55,64 @@ test('orders categories and interests by category order, then name', () => {
   assert.equal(interests[2].category, 'Music');
 });
 
-test('maps starter ideas in sort order and fills missing text', () => {
+test('maps starter ideas in sort order with their steps and difficulty', () => {
   const [interest] = toCatalogue(
     [arts],
     [
       row({
         slug: 'drawing',
-        type: 'surprise',
         starter_ideas: [
-          { id: 's2', title: 'Second', estimated_minutes: null, sort_order: 2 },
-          { id: 's1', title: 'First', estimated_minutes: 15, sort_order: 1 },
+          idea({ title: 'Second', sort_order: 2, difficulty: 'moderate', instructions: 'Look.\nDraw.' }),
+          idea({ title: 'First', estimated_minutes: 15, difficulty: 'easy', instructions: 'Sit down.' }),
+          idea({ title: 'Third', sort_order: 3, difficulty: 'heroic' }),
         ],
       }),
     ],
   ).interests;
 
-  assert.equal(interest.description, '');
-  assert.equal(interest.type, 'both');
   assert.deepEqual(interest.starterIdeas, [
-    { id: 's1', title: 'First', estimatedMinutes: 15 },
-    { id: 's2', title: 'Second', estimatedMinutes: null },
+    { id: 'First', title: 'First', estimatedMinutes: 15, difficulty: 'easy', steps: ['Sit down.'] },
+    { id: 'Second', title: 'Second', estimatedMinutes: null, difficulty: 'moderate', steps: ['Look.', 'Draw.'] },
+    { id: 'Third', title: 'Third', estimatedMinutes: null, difficulty: null, steps: [] },
   ]);
+});
+
+test('maps the guide and quiz tags', () => {
+  const [interest] = toCatalogue(
+    [arts],
+    [
+      row({
+        slug: 'knitting',
+        needs: 'Needles and yarn.',
+        setting: 'indoor',
+        social: 'together',
+        session_minutes: 30,
+        cost: 'low',
+        moods: ['creative', 'unknown', 'calm'],
+      }),
+    ],
+  ).interests;
+
+  assert.equal(interest.needs, 'Needles and yarn.');
+  assert.equal(interest.setting, 'indoor');
+  assert.equal(interest.social, 'together');
+  assert.equal(interest.sessionMinutes, 30);
+  assert.equal(interest.cost, 'low');
+  // Known moods only, in a fixed order.
+  assert.deepEqual(interest.moods, ['calm', 'creative']);
+});
+
+test('fills missing or unknown values', () => {
+  const [interest] = toCatalogue([arts], [row({ slug: 'drawing', type: 'surprise', setting: 'space' })]).interests;
+
+  assert.equal(interest.description, '');
+  assert.equal(interest.needs, '');
+  assert.equal(interest.type, 'both');
+  assert.equal(interest.setting, 'either');
+  assert.equal(interest.social, 'either');
+  assert.equal(interest.cost, 'low');
+  assert.equal(interest.sessionMinutes, null);
+  assert.deepEqual(interest.moods, []);
 });
 
 test('skips interests without a visible category', () => {
@@ -60,7 +121,71 @@ test('skips interests without a visible category', () => {
   assert.deepEqual(interests, []);
 });
 
-test('describes interest types in plain words', () => {
+test('splits steps on lines and drops blanks', () => {
+  assert.deepEqual(toSteps(' One. \r\n\nTwo.\n'), ['One.', 'Two.']);
+  assert.deepEqual(toSteps(null), []);
+});
+
+test('describes interest types and difficulty in plain words', () => {
   assert.equal(interestTypeLabel('habit'), 'A habit');
   assert.equal(interestTypeLabel('both'), 'A hobby or a habit');
+  assert.equal(difficultyLabel('easy'), 'Easy');
+  assert.equal(difficultyLabel('moderate'), 'A bit more');
+  assert.equal(difficultyLabel('stretch'), 'A stretch');
+});
+
+test('formats minutes and hours', () => {
+  assert.equal(formatMinutes(15), '15 min');
+  assert.equal(formatMinutes(60), '1 hour');
+  assert.equal(formatMinutes(90), '1½ hours');
+  assert.equal(formatMinutes(180), '3 hours');
+});
+
+test('lists the guide facts in order', () => {
+  assert.deepEqual(guideFacts({ setting: 'outdoor', social: 'solo', sessionMinutes: 20, cost: 'free' }), [
+    'Outdoors',
+    'On your own',
+    'About 20 min',
+    'Free',
+  ]);
+  assert.deepEqual(guideFacts({ setting: 'either', social: 'either', sessionMinutes: null, cost: 'medium' }), [
+    'Indoors or out',
+    'Alone or together',
+    'Some kit',
+  ]);
+});
+
+test('counts days in local time', () => {
+  const day = localDayNumber(new Date(2026, 10, 5, 0, 5));
+  assert.equal(localDayNumber(new Date(2026, 10, 5, 23, 55)), day);
+  assert.equal(localDayNumber(new Date(2026, 10, 6, 0, 5)), day + 1);
+});
+
+test('picks a featured interest and two more from other categories', () => {
+  const interests = [
+    { slug: 'a1', categorySlug: 'a' },
+    { slug: 'a2', categorySlug: 'a' },
+    { slug: 'b1', categorySlug: 'b' },
+    { slug: 'b2', categorySlug: 'b' },
+    { slug: 'c1', categorySlug: 'c' },
+    { slug: 'c2', categorySlug: 'c' },
+  ];
+
+  const today = discoverPicks(interests, 0);
+  assert.equal(today.featured.slug, 'a1');
+  assert.deepEqual(today.more.map(({ slug }) => slug), ['b1', 'c1']);
+
+  // The next day moves on, and the day wraps around the catalogue.
+  assert.equal(discoverPicks(interests, 1).featured.slug, 'a2');
+  assert.equal(discoverPicks(interests, 6).featured.slug, 'a1');
+  assert.equal(discoverPicks(interests, -1).featured.slug, 'c2');
+
+  const picks = discoverPicks(interests, 3);
+  const categories = [picks.featured, ...picks.more].map(({ categorySlug }) => categorySlug);
+  assert.equal(new Set(categories).size, 3);
+});
+
+test('picks fewer when there are few categories, and nothing from an empty catalogue', () => {
+  assert.deepEqual(discoverPicks([{ slug: 'a1', categorySlug: 'a' }], 4).more, []);
+  assert.equal(discoverPicks([], 0), null);
 });

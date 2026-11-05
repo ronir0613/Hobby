@@ -2,10 +2,21 @@
 // Kept free of the Supabase client so it can be unit tested.
 
 export type InterestType = 'hobby' | 'habit' | 'both';
+export type Setting = 'indoor' | 'outdoor' | 'either';
+export type Social = 'solo' | 'together' | 'either';
+export type Cost = 'free' | 'low' | 'medium';
+export type Mood = 'calm' | 'creative' | 'active' | 'learning';
+export type Difficulty = 'easy' | 'moderate' | 'stretch';
 
 export type CatalogueCategory = { id: string; slug: string; name: string };
 
-export type StarterIdea = { id: string; title: string; estimatedMinutes: number | null };
+export type StarterIdea = {
+  id: string;
+  title: string;
+  estimatedMinutes: number | null;
+  difficulty: Difficulty | null;
+  steps: string[];
+};
 
 export type CatalogueInterest = {
   id: string;
@@ -15,6 +26,13 @@ export type CatalogueInterest = {
   type: InterestType;
   category: string;
   categorySlug: string;
+  /** "What you'll need", one line. Empty if missing. */
+  needs: string;
+  setting: Setting;
+  social: Social;
+  sessionMinutes: number | null;
+  cost: Cost;
+  moods: Mood[];
   starterIdeas: StarterIdea[];
 };
 
@@ -22,20 +40,53 @@ export type Catalogue = { categories: CatalogueCategory[]; interests: CatalogueI
 
 export type CategoryRow = { id: string; slug: string; name: string; sort_order: number };
 
+export type StarterIdeaRow = {
+  id: string;
+  title: string;
+  estimated_minutes: number | null;
+  sort_order: number;
+  difficulty: string | null;
+  instructions: string | null;
+};
+
 export type InterestRow = {
   id: string;
   slug: string;
   name: string;
   description: string | null;
   type: string;
+  needs: string | null;
+  setting: string | null;
+  social: string | null;
+  session_minutes: number | null;
+  cost: string | null;
+  moods: string[] | null;
   category: CategoryRow | null;
-  starter_ideas: { id: string; title: string; estimated_minutes: number | null; sort_order: number }[];
+  starter_ideas: StarterIdeaRow[];
 };
 
-const INTEREST_TYPES: readonly string[] = ['hobby', 'habit', 'both'];
+/** Narrows a free-text column to one of the allowed values, else the fallback. */
+function oneOf<T extends string>(value: string | null, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+const INTEREST_TYPES = ['hobby', 'habit', 'both'] as const;
+const SETTINGS = ['indoor', 'outdoor', 'either'] as const;
+const SOCIALS = ['solo', 'together', 'either'] as const;
+const COSTS = ['free', 'low', 'medium'] as const;
+const MOODS: readonly Mood[] = ['calm', 'creative', 'active', 'learning'];
+const DIFFICULTIES: readonly Difficulty[] = ['easy', 'moderate', 'stretch'];
 
 function bySortThenText<T>(sort: (item: T) => number, text: (item: T) => string) {
   return (a: T, b: T) => sort(a) - sort(b) || text(a).localeCompare(text(b));
+}
+
+/** Starter idea steps are stored one per line. */
+export function toSteps(instructions: string | null): string[] {
+  return (instructions ?? '')
+    .split(/\r?\n/)
+    .map((step) => step.trim())
+    .filter(Boolean);
 }
 
 export function toCatalogue(categoryRows: CategoryRow[], interestRows: InterestRow[]): Catalogue {
@@ -52,12 +103,24 @@ export function toCatalogue(categoryRows: CategoryRow[], interestRows: InterestR
       slug: row.slug,
       name: row.name,
       description: row.description ?? '',
-      type: (INTEREST_TYPES.includes(row.type) ? row.type : 'both') as InterestType,
+      type: oneOf(row.type, INTEREST_TYPES, 'both'),
       category: row.category.name,
       categorySlug: row.category.slug,
+      needs: row.needs ?? '',
+      setting: oneOf(row.setting, SETTINGS, 'either'),
+      social: oneOf(row.social, SOCIALS, 'either'),
+      sessionMinutes: row.session_minutes,
+      cost: oneOf(row.cost, COSTS, 'low'),
+      moods: MOODS.filter((mood) => row.moods?.includes(mood)),
       starterIdeas: [...row.starter_ideas]
         .sort(bySortThenText((idea) => idea.sort_order, (idea) => idea.title))
-        .map((idea) => ({ id: idea.id, title: idea.title, estimatedMinutes: idea.estimated_minutes })),
+        .map((idea) => ({
+          id: idea.id,
+          title: idea.title,
+          estimatedMinutes: idea.estimated_minutes,
+          difficulty: DIFFICULTIES.includes(idea.difficulty as Difficulty) ? (idea.difficulty as Difficulty) : null,
+          steps: toSteps(idea.instructions),
+        })),
     }));
 
   return { categories, interests };
@@ -67,4 +130,59 @@ export function interestTypeLabel(type: InterestType) {
   if (type === 'hobby') return 'A hobby';
   if (type === 'habit') return 'A habit';
   return 'A hobby or a habit';
+}
+
+export function difficultyLabel(difficulty: Difficulty) {
+  if (difficulty === 'easy') return 'Easy';
+  if (difficulty === 'moderate') return 'A bit more';
+  return 'A stretch';
+}
+
+/** "15 min", "1 hour", "1½ hours", "3 hours". */
+export function formatMinutes(minutes: number) {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.round((minutes / 60) * 2) / 2;
+  const whole = Math.floor(hours);
+  const text = hours === whole ? String(whole) : `${whole}½`;
+  return `${text} ${hours === 1 ? 'hour' : 'hours'}`;
+}
+
+const SETTING_LABELS: Record<Setting, string> = { indoor: 'Indoors', outdoor: 'Outdoors', either: 'Indoors or out' };
+const SOCIAL_LABELS: Record<Social, string> = { solo: 'On your own', together: 'With others', either: 'Alone or together' };
+const COST_LABELS: Record<Cost, string> = { free: 'Free', low: 'Low cost', medium: 'Some kit' };
+
+/** The short facts shown under an interest: setting, company, time, cost. */
+export function guideFacts(interest: Pick<CatalogueInterest, 'setting' | 'social' | 'sessionMinutes' | 'cost'>) {
+  const facts = [SETTING_LABELS[interest.setting], SOCIAL_LABELS[interest.social]];
+  if (interest.sessionMinutes) facts.push(`About ${formatMinutes(interest.sessionMinutes)}`);
+  facts.push(COST_LABELS[interest.cost]);
+  return facts;
+}
+
+/** Days since 1970 in the phone's time zone, so Discover's picks change at local midnight. */
+export function localDayNumber(date: Date) {
+  return Math.floor((date.getTime() - date.getTimezoneOffset() * 60_000) / 86_400_000);
+}
+
+/**
+ * Discover's picks for a day: one featured interest and up to two more, each from a different
+ * category. Rotates through the whole catalogue, one step a day. Step 15 replaces this with
+ * quiz-based ranking.
+ */
+export function discoverPicks<T extends { categorySlug: string }>(interests: readonly T[], day: number) {
+  const count = interests.length;
+  if (count === 0) return null;
+  const start = ((day % count) + count) % count;
+  const featured = interests[start];
+  const more: T[] = [];
+  const usedCategories = new Set([featured.categorySlug]);
+  // Start a third of the way round so the extra picks aren't the featured one's neighbours.
+  const offset = Math.max(1, Math.floor(count / 3));
+  for (let step = 0; step < count && more.length < 2; step += 1) {
+    const candidate = interests[(start + offset + step) % count];
+    if (candidate === featured || usedCategories.has(candidate.categorySlug)) continue;
+    usedCategories.add(candidate.categorySlug);
+    more.push(candidate);
+  }
+  return { featured, more };
 }
