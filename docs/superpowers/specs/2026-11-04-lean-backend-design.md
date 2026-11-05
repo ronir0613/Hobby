@@ -9,7 +9,10 @@
 - **Reminders are in the MVP.** Scheduled locally with `expo-notifications`; Supabase stores only the settings (`notification_preferences`: morning and evening on/off and times, the time zone, and one set of `weekdays` shared by both, ISO 1 = Monday, migration `20261104190000`). Every day → one daily trigger per reminder; otherwise one weekly trigger per chosen day.
 - **Check-ins are for today only** (changed 2026-11-04). Today is answered `tried` or `skipped` and can be switched until midnight; past days are locked. There is no undo in the app.
 - **Status follows check-ins** (changed 2026-11-04); the user never picks it. No check-ins: `planned`. First check-in: `active`. 7 tried days in the current go: `completed`. Two skipped days in a row: `dropped` ("Maybe it wasn't your thing"). The only user action is "Give it another go" on a completed or dropped hobby, which moves it back to `planned` and keeps the history; check-ins from before that no longer count (the current go starts at `started_at`).
-- **Auth:** email + Google. Apple is deferred until iOS.
+- **Auth:** email + Google. Apple is deferred until iOS. Google sign-in moves to the native Android
+  account picker (step 12) so users never see the `supabase.co` address.
+- **Guest mode and sign-in, both** (decided 2026-11-05). Everything works without an account,
+  saved on the phone; signing in backs it up and syncs it (step 13).
 - **Account deletion is in the MVP** (Play policy): an Edge Function deletes the user's Storage files, then the Auth user. All rows cascade.
 - **Hosted dev project, no Docker.** Migrations are pushed with `supabase db push` to the linked project.
 
@@ -138,9 +141,54 @@ are still checked with the user first.
     Metro.
     *Done:* the APK installs on the test phone and opens straight into the app.
 
+### Before the Play Store release (agreed 2026-11-05)
+
+Asked for by the user after trying the preview APK. Done in this order, one chat per step; each
+ends with lint, typecheck, tests, a device check, commit and push. Ask before any cloud build or
+hosted change.
+
+12. **Native Google sign-in.** Replace the browser OAuth flow (which shows
+    `<ref>.supabase.co`) with `@react-native-google-signin/google-signin` and
+    `supabase.auth.signInWithIdToken` (nonce checked). Needs a Google Cloud web client ID (first in
+    Supabase's Google client list) and Android OAuth clients with the SHA-1 of each signing key: the
+    EAS upload key now, the Play App Signing key in step 17. The user does the Google Cloud and
+    Supabase dashboard parts; Claude reads the docs for the library's current Expo config plugin.
+    Also start Google brand verification (app name and logo on the consent screen). Native code, so
+    a new dev build and preview APK.
+    *Done:* on the preview APK, "Continue with Google" opens the Android account sheet, no browser,
+    and Profile shows "Signed in with Google"; email sign-in unchanged.
+13. **Guest mode.** Attempts, check-ins, notes, photos and reminder settings work signed out, kept on
+    the phone (a local store; photos as files in the app's document directory; reminders scheduled
+    the same way). The same screens read from a local or remote source depending on the session, so
+    the status rules (`checkin-rules.ts`) are shared. Signing in uploads the guest data to the
+    account: per interest, an attempt already on the account wins and the guest check-ins are added
+    for days it doesn't have; notes and photos are added; then the local copy is cleared. Signing
+    out leaves the account data in the cloud and starts an empty guest space. Profile signed out
+    shows the guest's hobbies with a "Back up and sync" sign-in card instead of a bare prompt; the
+    sign-in prompts on Media, attempts and Reminders go away. Delete account still removes cloud data;
+    a guest can clear the phone data from Profile.
+    *Done:* signed out on the phone, try a hobby, check in, add a note and a photo, set a reminder;
+    sign in and see them on hosted with the local copy gone.
+14. **Bigger catalogue with guides.** About 60–80 interests across 8–10 categories, each with a short
+    description, a "what you'll need" line, 2–3 starter ideas from easy to a bit more (title,
+    instructions as short steps, minutes, difficulty), and tags for step 15 (setting
+    indoor/outdoor, social solo/together, time, cost, mood calm/creative/active/learning). One
+    migration; the user reviews the list before `db push`. The detail screen shows the guide.
+    Discover's local list is replaced by the live catalogue.
+    *Done:* Explore shows the full catalogue from hosted and each detail screen shows its guide.
+15. **Starting quiz.** 4–5 single-tap questions on first open (with Skip), answers kept on the
+    phone (and on the profile when signed in), retake from Profile. Discover ranks interests by tag
+    matches and says why ("Calm, indoors, under 30 minutes").
+    *Done:* different answers on the phone give different Discover picks.
+16. **UI refresh.** More refined, not "AI-looking": clearer type scale, more space, fewer nested
+    boxes, hobby images or illustrations, subtle press feedback and transitions. Use the Better Design
+    tools if they're connected. Proposal for Discover, an interest and Profile first; the user
+    approves before the other screens change. DESIGN.md updated to match.
+    *Done:* every screen follows the approved direction on the phone, in light and dark.
+
 ### Play Store release (planned 2026-11-05)
 
-12. **Production release.** Nothing here has run yet; every cloud build, EAS change and hosted
+17. **Production release.** Nothing here has run yet; every cloud build, EAS change and hosted
     change waits for the user's go-ahead.
     - *Permissions.* The preview APK requests permissions the app never uses: `SYSTEM_ALERT_WINDOW`,
       `USE_BIOMETRIC` / `USE_FINGERPRINT` (from `expo-secure-store`), `com.google.android.c2dm.permission.RECEIVE`
@@ -152,10 +200,12 @@ are still checked with the user first.
       no second project for now. Remove test users and their rows before launch.
     - *EAS `production` environment.* Empty today. Create `EXPO_PUBLIC_SUPABASE_URL` (plain text) and
       `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (sensitive), as for `preview`.
+    - *Google sign-in.* Add the Play App Signing SHA-1 as an Android OAuth client (step 12).
     - *Build.* `eas build --platform android --profile production` makes an .aab; versionCode comes
       from EAS (`appVersionSource: remote`, `autoIncrement`). Same EAS-managed upload key; enrol in
       Play App Signing.
-    - *Privacy policy.* A public page covering: email and Google sign-in (email address), attempts,
+    - *Privacy policy.* A public page covering: guest data stays on the phone until sign-in; email
+      and Google sign-in (email address), attempts,
       check-ins, notes and photos stored in Supabase, reminder times kept on the account and
       scheduled on the phone, no ads, no analytics, no data sold or shared; in-app account deletion
       removes everything; a contact email. The same text drives Play's Data safety form.
