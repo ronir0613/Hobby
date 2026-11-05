@@ -6,7 +6,7 @@ import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
 import { BackButton } from '@/components/BackButton';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
-import { requireSignIn, useAuthStore } from '@/features/auth/auth-store';
+import { useAuthStore } from '@/features/auth/auth-store';
 import { ensureCatalogue } from '@/features/explore/catalogue-store';
 import { loadHobbies, useHobbiesStore } from '@/features/hobbies/hobbies-store';
 import { useAttemptTitle } from '@/features/hobbies/use-attempt-title';
@@ -28,13 +28,13 @@ export default function PhotoScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Opened directly (deep link, after sign-in) before anything loaded.
+  // Opened directly (deep link) before anything loaded.
   useEffect(() => {
-    if (!signedIn) return;
+    if (!authReady) return;
     ensureCatalogue();
     if (useKeepsakesStore.getState().status === 'idle') void loadKeepsakes();
     if (useHobbiesStore.getState().status === 'idle') void loadHobbies();
-  }, [signedIn]);
+  }, [authReady, signedIn]);
 
   function confirmDelete() {
     if (!photo) return;
@@ -63,22 +63,6 @@ export default function PhotoScreen() {
   let body;
   if (!authReady) {
     body = <LoadingMessage label="Opening this photo…" />;
-  } else if (!signedIn) {
-    body = (
-      <View className="rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
-        <AppText accessibilityRole="header" weight="semibold" size={21}>
-          Sign in to see your photos.
-        </AppText>
-        <AppText tone="secondary" size={15} style={{ marginTop: 8 }}>
-          Your notes and photos are kept with your account.
-        </AppText>
-        <ActionButton
-          label="Sign in"
-          onPress={() => requireSignIn({ pathname: '/photo/[id]', params: { id } })}
-          style={{ marginTop: 18 }}
-        />
-      </View>
-    );
   } else if (!photo && status === 'error') {
     body = (
       <ErrorMessage

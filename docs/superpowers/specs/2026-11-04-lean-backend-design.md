@@ -173,7 +173,29 @@ hosted change.
     a new dev build and preview APK.
     *Done:* on the preview APK, "Continue with Google" opens the Android account sheet, no browser,
     and Profile shows "Signed in with Google"; email sign-in unchanged.
-13. **Guest mode.** Attempts, check-ins, notes, photos and reminder settings work signed out, kept on
+13. ~~**Guest mode.**~~ Done; verified on device with preview build e94815d3 (installed after
+    removing 4a4db3cf; a local debug build fails on Windows because ninja can't create a 266-char
+    codegen path for `react-native-safe-area-context`). Signed out, Photography was added, checked in
+    (planned → active), a note and a gallery photo were saved and the evening reminder set for weekdays,
+    with no sign-in prompts. After Google sign-in, the account's existing Photography won: today's
+    check-in was not duplicated, and the note and photo were added to it on hosted (new
+    `media_assets` row with its Storage file, `notification_preferences.updated_at` rewritten). Signing
+    out then showed an empty guest space and no scheduled alarms, so the local copy was cleared.
+    Not run on device: the "create" path (a guest attempt for an interest the account doesn't have),
+    "Clear this phone's data", and a merge that fails halfway (covered by `guest-merge.test.mjs`).
+    *How it works:* guest rows live in AsyncStorage (`hobby.guest.v1`, same shape as the Supabase rows,
+    `user_id` 'guest'; `src/services/guest-store.ts`), photos as JPEGs in `Paths.document/guest-photos`.
+    `src/services/data-source.ts` gives the stores one interface with an account and a guest
+    implementation, picked by the session; `guest-lifecycle.ts` copies the database's lifecycle
+    triggers, and status still comes from `checkin-rules.ts` for both. Merge rules are pure in
+    `guest-merge.ts` (node tests); `guest-sync.ts` runs them on sign-in (and on launch if an earlier run
+    stopped). Guest UUIDs are kept in the cloud, so a retry skips what is already there; each attempt is
+    removed from the phone once its days, notes and photos are uploaded. A new attempt is rebuilt in
+    order (earlier go's days, back to planned, current go's days, then its status) so started_at
+    matches; days on an account attempt are added only where missing, then the shared rules run.
+    Guest reminder settings, if saved, replace the account's (the latest choice on this phone). Guest
+    notes and photos get the upload time as `created_at` (clients can't write it; no migration).
+    Original plan: Attempts, check-ins, notes, photos and reminder settings work signed out, kept on
     the phone (a local store; photos as files in the app's document directory; reminders scheduled
     the same way). The same screens read from a local or remote source depending on the session, so
     the status rules (`checkin-rules.ts`) are shared. Signing in uploads the guest data to the

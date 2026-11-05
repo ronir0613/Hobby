@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 
-import { useAuthStore } from '@/features/auth/auth-store';
+import { currentData, spaceKey, useAuthStore } from '@/features/auth/auth-store';
 import { hasNotificationPermission, updateReminderSettings } from '@/services/reminder-scheduler';
-import { getReminderSettings, type ReminderSettings } from '@/services/reminders';
+import type { ReminderSettings } from '@/services/reminders';
 import { DEFAULT_REMINDERS, type ReminderForm } from './reminders-model';
 
 type RemindersState = {
@@ -28,23 +28,26 @@ const toForm = (row: ReminderSettings | null): ReminderForm =>
     : DEFAULT_REMINDERS;
 
 let inFlight: Promise<void> | null = null;
+let inFlightSpace: string | null = null;
 
-/** Loads (or reloads) the saved settings. A failed reload keeps what was shown. */
+/** Loads (or reloads) the saved settings, from the account or this phone. A failed reload keeps what was shown. */
 export function loadReminders() {
-  if (inFlight) return inFlight;
+  const space = spaceKey(useAuthStore.getState());
+  if (inFlight && inFlightSpace === space) return inFlight; // a load from another space is discarded
+  inFlightSpace = space;
   useRemindersStore.setState((s) => ({ status: s.status === 'ready' ? 'ready' : 'loading' }));
-  const userId = useAuthStore.getState().session?.user.id;
-  inFlight = Promise.all([getReminderSettings(), hasNotificationPermission()])
+  inFlight = Promise.all([currentData().getReminderSettings(), hasNotificationPermission()])
     .then(([row, permitted]) => {
-      if (useAuthStore.getState().session?.user.id !== userId) return;
+      if (spaceKey(useAuthStore.getState()) !== space) return;
       useRemindersStore.setState({ status: 'ready', form: toForm(row), permitted });
     })
     .catch((error: unknown) => {
+      if (spaceKey(useAuthStore.getState()) !== space) return;
       if (__DEV__) console.warn('Reminder settings failed to load', error);
       useRemindersStore.setState((s) => ({ status: s.status === 'ready' ? 'ready' : 'error' }));
     })
     .finally(() => {
-      inFlight = null;
+      if (inFlightSpace === space) inFlight = null;
     });
   return inFlight;
 }
@@ -63,7 +66,7 @@ export function saveReminders(changes: Partial<ReminderForm>): Promise<SaveResul
   useRemindersStore.setState({ form: { ...before, ...changes } });
   const run = async (): Promise<SaveResult> => {
     try {
-      const result = await updateReminderSettings(changes);
+      const result = await updateReminderSettings(changes, currentData());
       if (!result.ok) {
         useRemindersStore.setState({ form: before, permitted: false });
         return 'permission-denied';
@@ -83,11 +86,16 @@ export function saveReminders(changes: Partial<ReminderForm>): Promise<SaveResul
   return next;
 }
 
-// Never show one account's settings to the next.
-let lastUserId: string | null = null;
-useAuthStore.subscribe((auth) => {
-  const userId = auth.session?.user.id ?? null;
-  if (userId === lastUserId) return;
-  lastUserId = userId;
+/** Forgets what is shown, so the next load reads the current space again. */
+export function resetReminders() {
   useRemindersStore.setState(initial);
+}
+
+// Never show one space's settings in the next.
+let lastSpace = spaceKey(useAuthStore.getState());
+useAuthStore.subscribe((auth) => {
+  const space = spaceKey(auth);
+  if (space === lastSpace) return;
+  lastSpace = space;
+  resetReminders();
 });

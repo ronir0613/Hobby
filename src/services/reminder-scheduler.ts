@@ -9,15 +9,12 @@ import {
   planReminders,
   type PlannedReminder,
 } from '@/services/reminder-plan';
-import {
-  getReminderSettings,
-  saveReminderSettings,
-  type ReminderSettings,
-  type ReminderSettingsChanges,
-} from '@/services/reminders';
+import { accountData, dataFor, type HobbyData } from '@/services/data-source';
+import type { ReminderSettings, ReminderSettingsChanges } from '@/services/reminders';
 
-// Daily reminders are local notifications scheduled on this device from the
-// user's notification_preferences row. Nothing is sent from a server.
+// Daily reminders are local notifications scheduled on this device from the user's
+// notification_preferences row, or from the guest's settings on this phone when signed out.
+// Nothing is sent from a server.
 
 export const REMINDER_CHANNEL_ID = 'reminders'; // matches defaultChannel in app.json
 
@@ -104,15 +101,21 @@ export type ReminderSyncResult =
 let lastSyncedTimeZone: string | null = null;
 let syncQueue: Promise<unknown> = Promise.resolve();
 
+/** The account's settings when signed in, the phone's otherwise. */
+async function currentSettings() {
+  const { data } = await supabase.auth.getSession();
+  return dataFor(data.session !== null).getReminderSettings();
+}
+
 /**
  * Replaces this device's scheduled reminders with what the settings say.
- * Reads settings from Supabase unless given. Never prompts for permission.
+ * Reads the current space's settings unless given. Never prompts for permission.
  * Calls run one after another so a quick toggle can't leave duplicates behind.
  */
 export function syncReminders(settings?: ReminderSettings | null): Promise<ReminderSyncResult> {
   const run = async (): Promise<ReminderSyncResult> => {
     if (!supported) return { status: 'unsupported' };
-    const prefs = settings === undefined ? await getReminderSettings() : settings;
+    const prefs = settings === undefined ? await currentSettings() : settings;
     const timeZone = deviceTimeZone();
     const plan = planReminders(prefs, { deviceTimeZone: timeZone });
 
@@ -141,11 +144,12 @@ export type UpdateRemindersResult =
  */
 export async function updateReminderSettings(
   changes: ReminderSettingsChanges,
+  data: HobbyData = accountData,
 ): Promise<UpdateRemindersResult> {
   if (enablesReminder(changes) && !(await requestNotificationPermission())) {
     return { ok: false, reason: 'permission-denied' };
   }
-  const settings = await saveReminderSettings({ timezone: deviceTimeZone(), ...changes });
+  const settings = await data.saveReminderSettings({ timezone: deviceTimeZone(), ...changes });
   const sync = await syncReminders(settings);
   return { ok: true, settings, sync };
 }
@@ -153,8 +157,8 @@ export async function updateReminderSettings(
 let started = false;
 
 /**
- * Call once at app start. Schedules on sign-in / app launch, clears on sign-out
- * (including after deleteAccount), and reschedules if the phone's time zone changed.
+ * Call once at app start. Schedules on launch and sign-in (the account's settings) and on sign-out
+ * (the guest's, usually none), and reschedules if the phone's time zone changed.
  * Returns a cleanup function.
  */
 export function startReminderSync() {
@@ -172,13 +176,11 @@ export function startReminderSync() {
 
   const report = (error: unknown) => console.warn('[reminders] sync failed', error);
 
-  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+  const { data } = supabase.auth.onAuthStateChange((event) => {
     // Supabase warns against awaiting other Supabase calls inside this callback.
     setTimeout(() => {
-      if (event === 'SIGNED_OUT' || !session) {
-        lastSyncedTimeZone = null;
-        cancelAllReminders().catch(report);
-      } else if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+      if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        // syncReminders cancels what is scheduled first, then follows the current space.
         syncReminders().catch(report);
       }
     }, 0);

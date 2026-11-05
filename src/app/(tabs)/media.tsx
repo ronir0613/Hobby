@@ -5,7 +5,7 @@ import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
-import { requireSignIn, useAuthStore } from '@/features/auth/auth-store';
+import { useAuthStore } from '@/features/auth/auth-store';
 import { ensureCatalogue } from '@/features/explore/catalogue-store';
 import { sortAttempts } from '@/features/hobbies/hobbies-model';
 import { loadHobbies, useHobbiesStore } from '@/features/hobbies/hobbies-store';
@@ -84,28 +84,17 @@ export default function MediaScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!signedIn) return;
+      if (!authReady) return;
       ensureCatalogue(); // for hobby names
       void loadHobbies();
       void loadKeepsakes(); // also refreshes the signed photo URLs
-    }, [signedIn]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- signedIn: reload when the space (account or phone) changes
+    }, [authReady, signedIn]),
   );
 
   let body;
   if (!authReady) {
     body = <LoadingMessage label="Loading your notes and photos…" />;
-  } else if (!signedIn) {
-    body = (
-      <View className="rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
-        <AppText accessibilityRole="header" weight="semibold" size={21}>
-          Sign in to keep notes and photos.
-        </AppText>
-        <AppText tone="secondary" size={15} style={{ marginTop: 8 }}>
-          They’re kept privately with your account, next to each hobby.
-        </AppText>
-        <ActionButton label="Sign in" onPress={() => requireSignIn('/media')} style={{ marginTop: 18 }} />
-      </View>
-    );
   } else if (hobbiesStatus === 'error' || keepsakesStatus === 'error') {
     body = (
       <ErrorMessage

@@ -1,23 +1,9 @@
 import { create } from 'zustand';
 
-import { useAuthStore } from '@/features/auth/auth-store';
-import {
-  createAttempt,
-  getAttempt,
-  listAttempts,
-  setAttemptStatus,
-  type Attempt,
-  type AttemptStatus,
-} from '@/services/attempts';
-import {
-  addCheckin,
-  currentRun,
-  listMyCheckins,
-  setCheckinResult,
-  statusAfterCheckins,
-  type Checkin,
-  type CheckinResult,
-} from '@/services/checkins';
+import { currentData, spaceKey, useAuthStore } from '@/features/auth/auth-store';
+import type { Attempt, AttemptStatus } from '@/services/attempts';
+import { currentRun, statusAfterCheckins, type CheckinResult } from '@/services/checkin-rules';
+import type { Checkin } from '@/services/checkins';
 
 type HobbiesState = {
   status: 'idle' | 'loading' | 'ready' | 'error';
@@ -36,23 +22,27 @@ function groupByAttempt(rows: Checkin[]) {
 }
 
 let inFlight: Promise<void> | null = null;
+let inFlightSpace: string | null = null;
 
-/** Loads (or reloads) the user's attempts and check-ins. A failed reload keeps what was shown. */
+/** Loads (or reloads) attempts and check-ins from the account or this phone. A failed reload keeps what was shown. */
 export function loadHobbies() {
-  if (inFlight) return inFlight;
+  const space = spaceKey(useAuthStore.getState());
+  if (inFlight && inFlightSpace === space) return inFlight; // a load from another space is discarded
+  inFlightSpace = space;
   useHobbiesStore.setState((state) => ({ status: state.status === 'ready' ? 'ready' : 'loading' }));
-  const userId = useAuthStore.getState().session?.user.id;
-  inFlight = Promise.all([listAttempts(), listMyCheckins()])
+  const data = currentData();
+  inFlight = Promise.all([data.listAttempts(), data.listMyCheckins()])
     .then(([attempts, checkins]) => {
-      if (useAuthStore.getState().session?.user.id !== userId) return; // signed out meanwhile
+      if (spaceKey(useAuthStore.getState()) !== space) return; // signed in or out meanwhile
       useHobbiesStore.setState({ status: 'ready', attempts, checkins: groupByAttempt(checkins) });
     })
     .catch((error: unknown) => {
+      if (spaceKey(useAuthStore.getState()) !== space) return;
       if (__DEV__) console.warn('My hobbies failed to load', error);
       useHobbiesStore.setState((state) => ({ status: state.status === 'ready' ? 'ready' : 'error' }));
     })
     .finally(() => {
-      inFlight = null;
+      if (inFlightSpace === space) inFlight = null;
     });
   return inFlight;
 }
@@ -75,37 +65,40 @@ function putCheckins(attemptId: string, update: (rows: Checkin[]) => Checkin[]) 
 }
 
 /**
- * Re-reads the attempt (the database makes a planned attempt active on its first check-in), then
- * applies the app's rules: 7 tried days → completed, two skipped days in a row → dropped.
+ * Re-reads the attempt (a planned attempt becomes active on its first check-in, in the database or
+ * the guest store), then applies the shared rules: 7 tried days → completed, two skipped days in a
+ * row → dropped.
  */
 async function syncStatus(attemptId: string) {
-  let attempt = await getAttempt(attemptId);
+  const data = currentData();
+  let attempt = await data.getAttempt(attemptId);
   if (!attempt) return;
   const run = currentRun(useHobbiesStore.getState().checkins[attemptId] ?? [], attempt.started_at);
   const next = statusAfterCheckins(attempt.status, run) as AttemptStatus;
-  if (next !== attempt.status) attempt = await setAttemptStatus(attemptId, next);
+  if (next !== attempt.status) attempt = await data.setAttemptStatus(attemptId, next);
   putAttempt(attempt);
 }
 
 /** Today's answer. Only today can be answered; it can be switched until the day ends. */
 export async function answerToday(attemptId: string, result: CheckinResult, today: string, existing?: Checkin) {
+  const data = currentData();
   if (existing) {
-    const row = await setCheckinResult(existing.id, result);
+    const row = await data.setCheckinResult(existing.id, result);
     putCheckins(attemptId, (rows) => rows.map((r) => (r.id === row.id ? row : r)));
   } else {
-    const row = await addCheckin({ attemptId, result, localDate: today });
+    const row = await data.addCheckin({ attemptId, result, localDate: today });
     putCheckins(attemptId, (rows) => [...rows.filter((r) => r.id !== row.id), row]);
   }
   await syncStatus(attemptId);
 }
 
 /**
- * Adds a planned attempt for a catalogue interest. The database allows one per interest, so if
- * one already exists (another device, a double tap) we reload and hand back that one instead.
+ * Adds a planned attempt for a catalogue interest. There is one per interest, so if one already
+ * exists (another device, a double tap) we reload and hand back that one instead.
  */
 export async function startAttempt(interestId: string, starterIdeaId: string | null): Promise<Attempt> {
   try {
-    const attempt = await createAttempt({ interest_id: interestId, starter_idea_id: starterIdeaId });
+    const attempt = await currentData().createAttempt({ interest_id: interestId, starter_idea_id: starterIdeaId });
     putAttempt(attempt);
     return attempt;
   } catch (error) {
@@ -120,14 +113,19 @@ export async function startAttempt(interestId: string, starterIdeaId: string | n
 
 /** "Give it another go": back to planned. History is kept; the next check-in starts a new go. */
 export async function giveAnotherGo(attemptId: string) {
-  putAttempt(await setAttemptStatus(attemptId, 'planned'));
+  putAttempt(await currentData().setAttemptStatus(attemptId, 'planned'));
 }
 
-// Never show one account's hobbies to the next: clear everything when the user changes.
-let lastUserId: string | null = null;
-useAuthStore.subscribe((auth) => {
-  const userId = auth.session?.user.id ?? null;
-  if (userId === lastUserId) return;
-  lastUserId = userId;
+/** Forgets what is shown, so the next load reads the current space again. */
+export function resetHobbies() {
   useHobbiesStore.setState(initial);
+}
+
+// Never show one space's hobbies in the next (account to account, account to guest and back).
+let lastSpace = spaceKey(useAuthStore.getState());
+useAuthStore.subscribe((auth) => {
+  const space = spaceKey(auth);
+  if (space === lastSpace) return;
+  lastSpace = space;
+  resetHobbies();
 });

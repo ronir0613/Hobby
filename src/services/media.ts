@@ -27,7 +27,7 @@ async function currentUserId(): Promise<string> {
 }
 
 /** Downscales to at most 2048 px and re-encodes as JPEG (HEIC and large PNGs included). */
-async function compressImage(uri: string) {
+export async function compressImage(uri: string) {
   const context = ImageManipulator.manipulate(uri, {
     maxWidth: MAX_DIMENSION,
     maxHeight: MAX_DIMENSION,

@@ -2,12 +2,11 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Linking, Pressable, Switch, View, useColorScheme } from 'react-native';
-import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
 import { BackButton } from '@/components/BackButton';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
-import { requireSignIn, useAuthStore } from '@/features/auth/auth-store';
+import { useAuthStore } from '@/features/auth/auth-store';
 import {
   WEEKDAY_CHIPS,
   dateFromTime,
@@ -38,8 +37,9 @@ export default function RemindersScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (signedIn) void loadReminders();
-    }, [signedIn]),
+      if (authReady) void loadReminders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- signedIn: reload when the space (account or phone) changes
+    }, [authReady, signedIn]),
   );
 
   async function save(changes: Partial<ReminderForm>) {
@@ -78,18 +78,6 @@ export default function RemindersScreen() {
   let body;
   if (!authReady) {
     body = <LoadingMessage label="Opening reminders…" />;
-  } else if (!signedIn) {
-    body = (
-      <View className="rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
-        <AppText accessibilityRole="header" weight="semibold" size={21}>
-          Sign in to set reminders.
-        </AppText>
-        <AppText tone="secondary" size={15} style={{ marginTop: 8 }}>
-          Your reminder times and days are kept with your account.
-        </AppText>
-        <ActionButton label="Sign in" onPress={() => requireSignIn('/reminders')} style={{ marginTop: 18 }} />
-      </View>
-    );
   } else if (status === 'error') {
     body = (
       <ErrorMessage

@@ -3,6 +3,7 @@ import { router, type Href } from 'expo-router';
 import { create } from 'zustand';
 
 import { onAuthChange } from '@/services/auth';
+import { dataFor } from '@/services/data-source';
 
 type AuthState = {
   session: Session | null;
@@ -34,6 +35,12 @@ export function startAuthListener() {
     started = false;
   };
 }
+
+/** Where hobbies, notes, photos and reminder settings are read and saved right now: the account or this phone. */
+export const currentData = () => dataFor(useAuthStore.getState().session !== null);
+
+/** Changes whenever the space changes (an account, or this phone's guest space). */
+export const spaceKey = (state: AuthState) => state.session?.user.id ?? 'guest';
 
 /** How the user signed in, for display. */
 export function signInMethodLabel(session: Session) {

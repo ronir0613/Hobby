@@ -49,7 +49,7 @@
     "web": "expo start --web",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/features/explore/filter-interests.test.mjs src/features/explore/catalogue-model.test.mjs src/theme/colors.test.mjs src/services/checkin-rules.test.mjs src/services/media-path.test.mjs src/services/reminder-plan.test.mjs src/features/hobbies/hobbies-model.test.mjs src/features/reminders/reminders-model.test.mjs src/features/keepsakes/keepsakes-model.test.mjs"
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/features/explore/filter-interests.test.mjs src/features/explore/catalogue-model.test.mjs src/theme/colors.test.mjs src/services/checkin-rules.test.mjs src/services/media-path.test.mjs src/services/reminder-plan.test.mjs src/features/hobbies/hobbies-model.test.mjs src/features/reminders/reminders-model.test.mjs src/features/keepsakes/keepsakes-model.test.mjs src/services/guest-merge.test.mjs src/services/guest-lifecycle.test.mjs"
   },
   "engines": {
     "node": ">=22.13.0"

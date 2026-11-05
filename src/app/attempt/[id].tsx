@@ -9,7 +9,7 @@ import { SegmentedChoice } from '@/components/SegmentedChoice';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { StatusList } from '@/components/StatusList';
 import { StatusPill } from '@/components/StatusPill';
-import { requireSignIn, useAuthStore } from '@/features/auth/auth-store';
+import { useAuthStore } from '@/features/auth/auth-store';
 import { ensureCatalogue } from '@/features/explore/catalogue-store';
 import { answerToday, giveAnotherGo, loadHobbies, useHobbiesStore } from '@/features/hobbies/hobbies-store';
 import { useAttemptTitle } from '@/features/hobbies/use-attempt-title';
@@ -53,8 +53,8 @@ export default function AttemptScreen() {
   // Opened directly (deep link, after sign-in) before Profile loaded the list.
   useEffect(() => {
     ensureCatalogue();
-    if (signedIn && useHobbiesStore.getState().status === 'idle') void loadHobbies();
-  }, [signedIn]);
+    if (authReady && useHobbiesStore.getState().status === 'idle') void loadHobbies();
+  }, [authReady, signedIn]);
 
   async function run(action: () => Promise<unknown>) {
     setError(null);
@@ -64,7 +64,7 @@ export default function AttemptScreen() {
     } catch (e) {
       if (__DEV__) console.warn('Saving a hobby change failed', e);
       setError(friendlyError(e));
-      void loadHobbies(); // show what the server has
+      void loadHobbies(); // show what is saved
     } finally {
       setBusy(false);
     }
@@ -73,22 +73,6 @@ export default function AttemptScreen() {
   let body;
   if (!authReady) {
     body = <LoadingMessage label="Opening this hobby…" />;
-  } else if (!signedIn) {
-    body = (
-      <View className="rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
-        <AppText accessibilityRole="header" weight="semibold" size={21}>
-          Sign in to see your hobbies.
-        </AppText>
-        <AppText tone="secondary" size={15} style={{ marginTop: 8 }}>
-          Your plans and check-ins are kept with your account.
-        </AppText>
-        <ActionButton
-          label="Sign in"
-          onPress={() => requireSignIn({ pathname: '/attempt/[id]', params: { id } })}
-          style={{ marginTop: 18 }}
-        />
-      </View>
-    );
   } else if (!attempt && loadStatus === 'error') {
     body = (
       <ErrorMessage

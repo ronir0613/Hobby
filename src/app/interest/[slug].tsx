@@ -6,7 +6,7 @@ import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
 import { BackButton } from '@/components/BackButton';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
-import { requireSignIn, useAuthStore } from '@/features/auth/auth-store';
+import { useAuthStore } from '@/features/auth/auth-store';
 import { interestTypeLabel } from '@/features/explore/catalogue-model';
 import { ensureCatalogue, loadCatalogue, useCatalogueStore } from '@/features/explore/catalogue-store';
 import { giveAnotherGo, loadHobbies, startAttempt, useHobbiesStore } from '@/features/hobbies/hobbies-store';
@@ -25,6 +25,7 @@ export default function InterestScreen() {
   const interest = useCatalogueStore((state) => state.catalogue?.interests.find((item) => item.slug === slug));
   const hasCatalogue = useCatalogueStore((state) => state.catalogue !== null);
   const signedIn = useAuthStore((state) => state.session !== null);
+  const authReady = useAuthStore((state) => state.ready);
   const hobbiesStatus = useHobbiesStore((state) => state.status);
   const existing = useHobbiesStore((state) =>
     interest ? state.attempts.find((attempt) => attempt.interest_id === interest.id) : undefined,
@@ -37,15 +38,11 @@ export default function InterestScreen() {
   useEffect(() => ensureCatalogue(), []);
   // Know whether this interest is already in My hobbies (one attempt per interest).
   useEffect(() => {
-    if (signedIn && useHobbiesStore.getState().status === 'idle') void loadHobbies();
-  }, [signedIn]);
+    if (authReady && useHobbiesStore.getState().status === 'idle') void loadHobbies();
+  }, [authReady, signedIn]);
 
   async function tryThis() {
     if (!interest) return;
-    if (!signedIn) {
-      requireSignIn({ pathname: '/interest/[slug]', params: { slug: interest.slug } });
-      return;
-    }
     setError(null);
     setSaving(true);
     try {
@@ -134,7 +131,7 @@ export default function InterestScreen() {
           </View>
         ) : null}
 
-        {signedIn && hobbiesStatus !== 'ready' && hobbiesStatus !== 'error' ? (
+        {hobbiesStatus !== 'ready' && hobbiesStatus !== 'error' ? (
           <LoadingMessage label="Checking your hobbies…" />
         ) : existing && (existing.status === 'planned' || existing.status === 'active') ? (
           <>
@@ -172,7 +169,7 @@ export default function InterestScreen() {
             <AppText tone="secondary" size={13} style={{ marginTop: 10, textAlign: 'center' }}>
               {signedIn
                 ? 'This adds it to your plans. Nothing starts until you are ready.'
-                : 'You will sign in first, so your plans stay with your account.'}
+                : 'This adds it to your plans, saved on this phone. Nothing starts until you are ready.'}
             </AppText>
           </>
         )}

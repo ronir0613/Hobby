@@ -1,26 +1,14 @@
 import { create } from 'zustand';
 
-import { useAuthStore } from '@/features/auth/auth-store';
-import {
-  createJournalEntry,
-  deleteJournalEntry,
-  listMyJournalEntries,
-  updateJournalEntry,
-  type JournalEntry,
-} from '@/services/journal';
-import {
-  deleteMedia,
-  getSignedMediaUrls,
-  listMyMedia,
-  uploadAttemptPhoto,
-  type MediaAsset,
-} from '@/services/media';
+import { currentData, spaceKey, useAuthStore } from '@/features/auth/auth-store';
+import type { JournalEntry } from '@/services/journal';
+import type { MediaAsset } from '@/services/media';
 
 type KeepsakesState = {
   status: 'idle' | 'loading' | 'ready' | 'error';
   notes: JournalEntry[]; // newest first, all hobbies
   photos: MediaAsset[]; // newest first, all hobbies
-  urls: Record<string, string>; // signed display URLs by storage path
+  urls: Record<string, string>; // display URLs by storage path (signed, or file URIs on the phone)
 };
 
 const initial: KeepsakesState = { status: 'idle', notes: [], photos: [], urls: {} };
@@ -30,64 +18,74 @@ export const useKeepsakesStore = create<KeepsakesState>(() => initial);
 const byNewest = (a: { created_at: string }, b: { created_at: string }) => b.created_at.localeCompare(a.created_at);
 
 let inFlight: Promise<void> | null = null;
+let inFlightSpace: string | null = null;
 
-/** Loads (or reloads) every note and photo, with fresh signed URLs. A failed reload keeps what was shown. */
+/** Loads (or reloads) every note and photo, with fresh display URLs. A failed reload keeps what was shown. */
 export function loadKeepsakes() {
-  if (inFlight) return inFlight;
+  const space = spaceKey(useAuthStore.getState());
+  if (inFlight && inFlightSpace === space) return inFlight; // a load from another space is discarded
+  inFlightSpace = space;
   useKeepsakesStore.setState((state) => ({ status: state.status === 'ready' ? 'ready' : 'loading' }));
-  const userId = useAuthStore.getState().session?.user.id;
-  inFlight = Promise.all([listMyJournalEntries(), listMyMedia()])
+  const data = currentData();
+  inFlight = Promise.all([data.listMyJournalEntries(), data.listMyMedia()])
     .then(async ([notes, photos]) => {
-      const urls = await getSignedMediaUrls(photos.map((p) => p.storage_path));
-      if (useAuthStore.getState().session?.user.id !== userId) return; // signed out meanwhile
+      const urls = await data.mediaUrls(photos.map((p) => p.storage_path));
+      if (spaceKey(useAuthStore.getState()) !== space) return; // signed in or out meanwhile
       useKeepsakesStore.setState({ status: 'ready', notes, photos, urls });
     })
     .catch((error: unknown) => {
+      if (spaceKey(useAuthStore.getState()) !== space) return;
       if (__DEV__) console.warn('Notes and photos failed to load', error);
       useKeepsakesStore.setState((state) => ({ status: state.status === 'ready' ? 'ready' : 'error' }));
     })
     .finally(() => {
-      inFlight = null;
+      if (inFlightSpace === space) inFlight = null;
     });
   return inFlight;
 }
 
 export async function addNote(attemptId: string, content: string) {
-  const note = await createJournalEntry(attemptId, content);
+  const note = await currentData().createJournalEntry(attemptId, content);
   useKeepsakesStore.setState((state) => ({ notes: [note, ...state.notes].sort(byNewest) }));
 }
 
 export async function editNote(id: string, content: string) {
-  const note = await updateJournalEntry(id, content);
+  const note = await currentData().updateJournalEntry(id, content);
   useKeepsakesStore.setState((state) => ({ notes: state.notes.map((n) => (n.id === id ? note : n)) }));
 }
 
 export async function removeNote(id: string) {
-  await deleteJournalEntry(id);
+  await currentData().deleteJournalEntry(id);
   useKeepsakesStore.setState((state) => ({ notes: state.notes.filter((n) => n.id !== id) }));
 }
 
-/** Compresses and uploads a picked or taken photo, then shows it. */
+/** Compresses a picked or taken photo, keeps it (account or phone), then shows it. */
 export async function addPhoto(attemptId: string, uri: string) {
-  const photo = await uploadAttemptPhoto({ attemptId, uri });
-  const urls = await getSignedMediaUrls([photo.storage_path]).catch(() => ({}));
+  const data = currentData();
+  const photo = await data.addPhoto(attemptId, uri);
+  const urls = await data.mediaUrls([photo.storage_path]).catch(() => ({}));
   useKeepsakesStore.setState((state) => ({
     photos: [photo, ...state.photos].sort(byNewest),
     urls: { ...state.urls, ...urls },
   }));
 }
 
-/** File first, then the row (see deleteMedia). */
+/** File first, then the row. */
 export async function removePhoto(photo: MediaAsset) {
-  await deleteMedia(photo);
+  await currentData().deleteMedia(photo);
   useKeepsakesStore.setState((state) => ({ photos: state.photos.filter((p) => p.id !== photo.id) }));
 }
 
-// Never show one account's notes and photos to the next: clear everything when the user changes.
-let lastUserId: string | null = null;
-useAuthStore.subscribe((auth) => {
-  const userId = auth.session?.user.id ?? null;
-  if (userId === lastUserId) return;
-  lastUserId = userId;
+/** Forgets what is shown, so the next load reads the current space again. */
+export function resetKeepsakes() {
   useKeepsakesStore.setState(initial);
+}
+
+// Never show one space's notes and photos in the next.
+let lastSpace = spaceKey(useAuthStore.getState());
+useAuthStore.subscribe((auth) => {
+  const space = spaceKey(auth);
+  if (space === lastSpace) return;
+  lastSpace = space;
+  resetKeepsakes();
 });

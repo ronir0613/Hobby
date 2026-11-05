@@ -4,6 +4,7 @@ import { ActionButton } from '@/components/ActionButton';
 import { AppText } from '@/components/AppText';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { TextField } from '@/components/TextField';
+import { useAuthStore } from '@/features/auth/auth-store';
 import { dayLabel, toLocalDate } from '@/services/checkins';
 import type { JournalEntry } from '@/services/journal';
 import { keepsakeError } from './keepsakes-copy';
@@ -145,8 +146,9 @@ function NoteCard({ note }: { note: JournalEntry }) {
   );
 }
 
-/** Notes and photos for one attempt, on its screen. Signed-in only. */
+/** Notes and photos for one attempt, on its screen (account or this phone). */
 export function KeepsakesSection({ attemptId }: { attemptId: string }) {
+  const signedIn = useAuthStore((state) => state.session !== null);
   const status = useKeepsakesStore((state) => state.status);
   const allNotes = useKeepsakesStore((state) => state.notes);
   const allPhotos = useKeepsakesStore((state) => state.photos);
@@ -166,7 +168,7 @@ export function KeepsakesSection({ attemptId }: { attemptId: string }) {
 
   useEffect(() => {
     void loadKeepsakes();
-  }, []);
+  }, [signedIn]);
 
   async function saveNote() {
     const content = cleanNote(draft);
@@ -294,7 +296,7 @@ export function KeepsakesSection({ attemptId }: { attemptId: string }) {
         Notes and photos
       </AppText>
       <AppText tone="secondary" size={14} style={{ marginTop: 2 }}>
-        Only you can see these.
+        {signedIn ? 'Only you can see these.' : 'Kept privately on this phone.'}
       </AppText>
       {body}
     </>

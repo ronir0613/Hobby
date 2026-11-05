@@ -11,6 +11,7 @@ import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../../global.css';
 import { startAuthListener, useAuthStore } from '@/features/auth/auth-store';
+import { startGuestMerge } from '@/features/auth/guest-merge-store';
 import { startReminderSync } from '@/services/reminder-scheduler';
 import { darkColors, lightColors } from '@/theme/colors';
 
@@ -32,6 +33,7 @@ export default function RootLayout() {
 
   useEffect(() => startAuthListener(), []);
   useEffect(() => startReminderSync(), []);
+  useEffect(() => startGuestMerge(), []);
 
   // Signing in removes the protected sign-in screen, which resets history to the tabs.
   // Wait until that has happened (we're no longer on sign-in), then reopen where the user was.

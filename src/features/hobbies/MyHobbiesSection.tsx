@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 import { ActionButton } from '@/components/ActionButton';
 import { AppText } from '@/components/AppText';
@@ -9,7 +9,7 @@ import { ensureCatalogue } from '@/features/explore/catalogue-store';
 import { groupAttempts, STATUS_LABELS } from './hobbies-model';
 import { loadHobbies, useHobbiesStore } from './hobbies-store';
 
-/** Signed-in only: the user's attempts, refreshed whenever Profile comes into focus. */
+/** The attempts (account or this phone), refreshed whenever Profile comes into focus. */
 export function MyHobbiesSection() {
   const status = useHobbiesStore((state) => state.status);
   const attempts = useHobbiesStore((state) => state.attempts);
@@ -22,6 +22,10 @@ export function MyHobbiesSection() {
       void loadHobbies();
     }, []),
   );
+  // Signing in or out empties the list; load the new space's.
+  useEffect(() => {
+    if (status === 'idle') void loadHobbies();
+  }, [status]);
 
   let body;
   if (status === 'error') {

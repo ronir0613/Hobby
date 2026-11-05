@@ -1,13 +1,13 @@
 import { SymbolView } from 'expo-symbols';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Pressable, View, useColorScheme } from 'react-native';
 import { AppText } from '@/components/AppText';
 import { darkColors, lightColors } from '@/theme/colors';
 import { reminderSummary } from './reminders-model';
 import { loadReminders, useRemindersStore } from './reminders-store';
 
-/** Signed-in only: a Profile row that opens the reminders screen, with a one-line summary. */
+/** A Profile row that opens the reminders screen, with a one-line summary. */
 export function RemindersRow() {
   const colors = useColorScheme() === 'dark' ? darkColors : lightColors;
   const status = useRemindersStore((state) => state.status);
@@ -18,6 +18,10 @@ export function RemindersRow() {
       void loadReminders();
     }, []),
   );
+  // Signing in or out empties the settings; load the new space's.
+  useEffect(() => {
+    if (status === 'idle') void loadReminders();
+  }, [status]);
 
   const summary = status === 'ready' ? reminderSummary(form) : status === 'error' ? 'Tap to see your reminders' : 'Loading…';
 
