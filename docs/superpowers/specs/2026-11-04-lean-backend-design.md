@@ -55,8 +55,8 @@ the catalogue from the database; `src/data/interest-catalog.ts` is gone. The cat
 
 ## Verification
 
-`supabase/tests/*.sql` are pgTAP tests (61 assertions: schema and catalogue shape, lifecycle/undo,
-RLS between two users, Storage paths). All three files passed on hosted after step 14 (2026-11-05),
+`supabase/tests/*.sql` are pgTAP tests (65 assertions: schema and catalogue shape, quiz answers, lifecycle/undo,
+RLS between two users, Storage paths). All three files passed on hosted after step 15 (2026-11-05),
 each run through `supabase db query --remote` inside a rolled-back transaction (no Docker): pgtap
 is created inside the transaction and each assertion row is collected in a temp table, since
 `db query` returns only the last result set. The RLS test counts only its own user's check-ins and
@@ -235,7 +235,33 @@ hosted change.
     migration; the user reviews the list before `db push`. The detail screen shows the guide.
     Discover's local list is replaced by the live catalogue.
     *Done:* Explore shows the full catalogue from hosted and each detail screen shows its guide.
-15. **Starting quiz.** 4–5 single-tap questions on first open (with Skip), answers kept on the
+15. ~~**Starting quiz.**~~ Done (47e83f3); verified on device with preview build 38646735
+    (installed with `adb install -r` over f7d36f0f, signed out): Skip kept today's rotation (Bread
+    baking); Calm / Indoors / On my own / 15 minutes / Nothing gave "Breathwork: Calm, indoors, 15
+    minutes or less" with Poetry and Logic puzzles; Retake from Profile (earlier answers chosen,
+    "Cancel" instead of Skip) with Active / Outdoors / With others / An hour or more / Some kit gave
+    "Day trips: Active, outdoors, time to settle in" with Geocaching and Cycling (dark); and in light
+    Learning / Either / With others / Half an hour / A little gave "Sign language: Something to learn,
+    30 minutes or less, free" with Chess and Birdwatching. The first-launch quiz opened while the
+    phone was locked (it was already marked seen once unlocked), so the first-open screen itself was
+    checked on the web build only. The signed-in save and the guest→account carry-over were not run on
+    device (pgTAP covers the columns; the merge mirrors reminder settings).
+    *How it works:* five questions (mood, setting, social, time short/medium/long, cost
+    free/low/any) in `src/features/quiz/quiz-model.ts`, shown once per phone (`hobby.quiz.seen.v1`
+    in AsyncStorage; skipping counts). `discoverPicks(interests, answers, day)` replaces the old
+    rotation: with no answers it is the same daily rotation; with answers each interest scores mood
+    +3, an exact setting/social match +2 ("either" on the interest +1, a clash −2), time and cost
+    +2 for a fit and −1/−2 for a clear miss, and ties are broken by the day's rotation, so equal fits
+    still change daily. The three picks stay in different categories, and each says why with up to
+    three matching tags ("Calm, indoors, 15 minutes or less"). Guests keep answers in the guest store
+    (`GuestData.quiz`); signed in, they live on `profiles` (migration `20261105150000`, pushed: six
+    `quiz_*` columns, checked values, all-or-none constraint, column UPDATE grant). On sign-in the
+    guest's answers replace the account's (like reminder settings), then leave the phone. Signing
+    out shows the guest space's answers (none after a merge), so Discover goes back to the rotation
+    without reopening the quiz. pgTAP: 65 assertions pass on hosted (4 new in `schema_test.sql`).
+    Reviewed on the web build with Better Design (spacing 85; option padding and header gap moved
+    onto the 4/8 scale; the question counter is sentence case).
+    Original plan: 4–5 single-tap questions on first open (with Skip), answers kept on the
     phone (and on the profile when signed in), retake from Profile. Discover ranks interests by tag
     matches and says why ("Calm, indoors, under 30 minutes").
     *Done:* different answers on the phone give different Discover picks.
