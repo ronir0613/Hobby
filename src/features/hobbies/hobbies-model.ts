@@ -27,3 +27,18 @@ export function sortAttempts<T extends { status: string; created_at: string }>(a
   };
   return [...attempts].sort((a, b) => rank(a.status) - rank(b.status) || b.created_at.localeCompare(a.created_at));
 }
+
+/** My hobbies sections, in sortAttempts order; statuses with no attempts are left out. */
+export function groupAttempts<T extends { status: string; created_at: string }>(
+  attempts: readonly T[],
+): { status: AttemptStatus; attempts: T[] }[] {
+  const groups: { status: AttemptStatus; attempts: T[] }[] = [];
+  for (const attempt of sortAttempts(attempts)) {
+    if (!(ATTEMPT_STATUSES as readonly string[]).includes(attempt.status)) continue;
+    const status = attempt.status as AttemptStatus;
+    const last = groups[groups.length - 1];
+    if (last?.status === status) last.attempts.push(attempt);
+    else groups.push({ status, attempts: [attempt] });
+  }
+  return groups;
+}

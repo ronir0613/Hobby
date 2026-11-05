@@ -6,7 +6,7 @@ import { AppText } from '@/components/AppText';
 import { AttemptCard } from '@/components/AttemptCard';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { ensureCatalogue } from '@/features/explore/catalogue-store';
-import { sortAttempts } from './hobbies-model';
+import { groupAttempts, STATUS_LABELS } from './hobbies-model';
 import { loadHobbies, useHobbiesStore } from './hobbies-store';
 
 /** Signed-in only: the user's attempts, refreshed whenever Profile comes into focus. */
@@ -14,7 +14,7 @@ export function MyHobbiesSection() {
   const status = useHobbiesStore((state) => state.status);
   const attempts = useHobbiesStore((state) => state.attempts);
   const checkins = useHobbiesStore((state) => state.checkins);
-  const sorted = useMemo(() => sortAttempts(attempts), [attempts]);
+  const groups = useMemo(() => groupAttempts(attempts), [attempts]);
 
   useFocusEffect(
     useCallback(() => {
@@ -34,7 +34,7 @@ export function MyHobbiesSection() {
     );
   } else if (status !== 'ready') {
     body = <LoadingMessage label="Loading your hobbies…" />;
-  } else if (sorted.length === 0) {
+  } else if (groups.length === 0) {
     body = (
       <View className="rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
         <AppText weight="semibold" size={18}>
@@ -48,9 +48,16 @@ export function MyHobbiesSection() {
     );
   } else {
     body = (
-      <View className="gap-3">
-        {sorted.map((attempt) => (
-          <AttemptCard key={attempt.id} attempt={attempt} checkins={checkins[attempt.id] ?? []} />
+      <View className="gap-7">
+        {groups.map((group) => (
+          <View key={group.status} className="gap-3">
+            <AppText accessibilityRole="header" weight="semibold" size={17}>
+              {STATUS_LABELS[group.status]}
+            </AppText>
+            {group.attempts.map((attempt) => (
+              <AttemptCard key={attempt.id} attempt={attempt} checkins={checkins[attempt.id] ?? []} />
+            ))}
+          </View>
         ))}
       </View>
     );
