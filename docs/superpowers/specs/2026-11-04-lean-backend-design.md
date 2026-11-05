@@ -121,6 +121,15 @@ are still checked with the user first.
     with the file deleted before its row.
     *Done:* add and delete a note and a photo on device, and Storage paths follow
     `<user>/<attempt>/<uuid>.<ext>`.
-11. **Installable preview build.** EAS preview APK that runs without the dev-client launcher or
+11. ~~**Installable preview build.**~~ Done (b17d4cb); verified on device: the EAS preview APK
+    (build a960cdf2, versionCode 1, not debuggable) installed with `adb install` after removing the
+    debug-signed dev build, and opened straight into Discover with no Metro or `adb reverse`. Signed
+    in with email and Google, and Explore, My hobbies, a check-in, reminders, a note and a photo
+    worked against hosted. EAS project `@roni1306/hobby-discovery`; the `preview` profile reads
+    `EXPO_PUBLIC_SUPABASE_URL` (plain text) and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (sensitive)
+    from the EAS `preview` environment; the keystore is EAS-managed. Google sign-in goes through
+    Supabase's web OAuth to `hobby://auth/callback`, so no signing SHA-1 is needed. The project
+    `.npmrc` sets `legacy-peer-deps=true` because the lock file has no auto-installed peers and
+    EAS runs `npm ci`. EAS preview APK that runs without the dev-client launcher or
     Metro.
     *Done:* the APK installs on the test phone and opens straight into the app.
