@@ -116,8 +116,12 @@ are still checked with the user first.
     was uploaded as a 134 KB JPEG at `<user>/<attempt>/<uuid>.jpg` (media_assets row and
     storage.objects name match), then deleted with both the file and the row gone. Notes and photos
     live on the attempt screen; Media lists them across hobbies. Photos come from the camera or the
-    Android photo picker (`expo-image-picker`). Not yet tried on device: the camera button and the
-    signed-out prompts. Notes and photos per attempt, compressed before upload,
+    Android photo picker (`expo-image-picker`). Camera and signed-out prompts verified on the
+    preview APK (2026-11-05): the camera prompt shows the app.json copy, "Don't allow" shows the
+    muted box and "Open phone settings" opens the app's settings page, a retry clears the box, and a
+    camera shot uploaded as a 46 KB JPEG at `<user>/<attempt>/<uuid>.jpg`, then was deleted (row and
+    file gone). Signed out, Profile, Media, an attempt, a photo and Reminders each show their
+    sign-in prompt, and Media's opens the sign-in screen. Notes and photos per attempt, compressed before upload,
     with the file deleted before its row.
     *Done:* add and delete a note and a photo on device, and Storage paths follow
     `<user>/<attempt>/<uuid>.<ext>`.
@@ -133,3 +137,35 @@ are still checked with the user first.
     EAS runs `npm ci`. EAS preview APK that runs without the dev-client launcher or
     Metro.
     *Done:* the APK installs on the test phone and opens straight into the app.
+
+### Play Store release (planned 2026-11-05)
+
+12. **Production release.** Nothing here has run yet; every cloud build, EAS change and hosted
+    change waits for the user's go-ahead.
+    - *Permissions.* The preview APK requests permissions the app never uses: `SYSTEM_ALERT_WINDOW`,
+      `USE_BIOMETRIC` / `USE_FINGERPRINT` (from `expo-secure-store`), `com.google.android.c2dm.permission.RECEIVE`
+      (remote push is off) and the launcher badge permissions. Add them to `android.blockedPermissions`
+      in app.json, keeping `CAMERA`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `VIBRATE`,
+      `WAKE_LOCK`, `INTERNET` and `ACCESS_NETWORK_STATE`. Check with a new preview APK that camera,
+      reminders (incl. after reboot) and sign-in still work.
+    - *Backend.* The production app points at the current hosted project (the one already linked);
+      no second project for now. Remove test users and their rows before launch.
+    - *EAS `production` environment.* Empty today. Create `EXPO_PUBLIC_SUPABASE_URL` (plain text) and
+      `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (sensitive), as for `preview`.
+    - *Build.* `eas build --platform android --profile production` makes an .aab; versionCode comes
+      from EAS (`appVersionSource: remote`, `autoIncrement`). Same EAS-managed upload key; enrol in
+      Play App Signing.
+    - *Privacy policy.* A public page covering: email and Google sign-in (email address), attempts,
+      check-ins, notes and photos stored in Supabase, reminder times kept on the account and
+      scheduled on the phone, no ads, no analytics, no data sold or shared; in-app account deletion
+      removes everything; a contact email. The same text drives Play's Data safety form.
+    - *Account deletion web link.* Play also asks for a web URL where users can request deletion;
+      the privacy page can carry a short "how to delete" section with the in-app path and the contact email.
+    - *Play Console.* Create the app (Hobby, free, no ads), content rating questionnaire, target
+      audience (not for children), Data safety, store listing (short and full description, 512 px
+      icon, 1024×500 feature graphic, at least 2 phone screenshots). A personal developer account
+      needs a closed test with at least 12 testers for 14 days before production access.
+    - *Submit.* First .aab uploaded by hand to internal testing (or `eas submit` with a Google service
+      account key and `releaseStatus: "draft"`), then closed testing, then production.
+    *Done:* the production .aab is on a Play testing track and installs from the Play Store on the
+    test phone, signed in against hosted.
