@@ -58,6 +58,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "21feadea-7892-41de-8280-64df8e0ae46a"
+      }
+    },
+    "owner": "roni1306"
   }
 }
