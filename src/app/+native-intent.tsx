@@ -1,6 +1,6 @@
 import { completeAuthFromUrl, isAuthCallbackUrl } from '@/services/auth';
 
-// Auth links (Google redirect, email confirmation, password reset) have no screen.
+// Auth links (email confirmation, password reset) have no screen.
 // Finish sign-in from the link and land on home; listen with onAuthChange for the result.
 export function redirectSystemPath({ path }: { path: string; initial: boolean }) {
   try {

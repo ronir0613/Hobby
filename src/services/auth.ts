@@ -1,11 +1,13 @@
 import { FunctionsHttpError, type AuthChangeEvent, type Session } from '@supabase/supabase-js';
+import * as Crypto from 'expo-crypto';
 import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
 
 import { supabase } from '@/lib/supabase/client';
 import { cancelAllReminders } from '@/services/reminder-scheduler';
 
-// Every auth email link and the Google redirect come back here.
+import GoogleId from '../../modules/google-id';
+
+// Every auth email link comes back here.
 // Add this URL (and the Expo Go one in development) to Supabase Auth → URL Configuration.
 export const AUTH_CALLBACK_PATH = 'auth/callback';
 export const authRedirectUrl = () => Linking.createURL(AUTH_CALLBACK_PATH);
@@ -22,7 +24,7 @@ function readCallbackParams(url: string) {
   return { code: get('code'), error: get('error_description') ?? get('error') };
 }
 
-// A redirect can reach the app twice on Android (browser result + deep link).
+// A link can reach the app twice on Android (cold start + deep link).
 // A PKCE code works only once, so share one exchange per code.
 const exchanges = new Map<string, Promise<Session>>();
 
@@ -73,18 +75,29 @@ export async function updatePassword(password: string) {
   if (error) throw error;
 }
 
-/** Opens Google in a browser tab. Resolves to null if the user closes it. */
-export async function signInWithGoogle(): Promise<Session | null> {
-  const redirectTo = authRedirectUrl();
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo, skipBrowserRedirect: true },
-  });
-  if (error) throw error;
+const toHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (result.type !== 'success') return null;
-  return completeAuthFromUrl(result.url);
+/**
+ * Shows the Android Google account sheet (no browser) and signs in to Supabase
+ * with the returned ID token. Resolves to null if the user closes the sheet.
+ *
+ * Nonce: Google puts SHA-256(raw) in the token; Supabase hashes the raw nonce we
+ * send and checks they match, so a stolen token can't be replayed.
+ */
+export async function signInWithGoogle(): Promise<Session | null> {
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
+  if (!webClientId) throw new Error('Google sign-in is not set up in this build.');
+  if (!GoogleId) throw new Error('Google sign-in needs the Android app. Use email here.');
+
+  const rawNonce = toHex(Crypto.getRandomBytes(32));
+  const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
+
+  const idToken = await GoogleId.signIn(webClientId, hashedNonce);
+  if (!idToken) return null;
+
+  const { data, error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken, nonce: rawNonce });
+  if (error) throw error;
+  return data.session;
 }
 
 /** Local reminders belong to the signed-in user, so clear them first. Never blocks sign-out. */

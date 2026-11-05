@@ -31,6 +31,10 @@ function friendlyError(error: unknown) {
         return 'Too many tries for now. Please wait a minute and try again.';
     }
   }
+  const code = (error as { code?: unknown } | null)?.code;
+  if (typeof code === 'string' && code.startsWith('ERR_GOOGLE_ID') && code.includes('NO_CREDENTIAL')) {
+    return 'No Google account was found on this phone. Add one in Settings, or use email.';
+  }
   if (error instanceof Error && /network|fetch/i.test(error.message)) {
     return "Couldn't reach the server. Check your connection and try again.";
   }
@@ -49,7 +53,7 @@ export default function SignInScreen() {
   const creating = mode === 'create';
 
   // Leaving without signing in drops the pending return, so a later sign-in from Profile stays put.
-  // A sign-in in progress keeps it: the Google redirect leaves this screen before the session lands.
+  // A sign-in in progress keeps it: the protected route may leave this screen as the session lands.
   const signingIn = useRef(false);
   useEffect(
     () => () => {

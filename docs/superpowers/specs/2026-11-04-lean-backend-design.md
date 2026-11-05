@@ -134,8 +134,8 @@ are still checked with the user first.
     in with email and Google, and Explore, My hobbies, a check-in, reminders, a note and a photo
     worked against hosted. EAS project `@roni1306/hobby-discovery`; the `preview` profile reads
     `EXPO_PUBLIC_SUPABASE_URL` (plain text) and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (sensitive)
-    from the EAS `preview` environment; the keystore is EAS-managed. Google sign-in goes through
-    Supabase's web OAuth to `hobby://auth/callback`, so no signing SHA-1 is needed. The project
+    from the EAS `preview` environment; the keystore is EAS-managed. (Google sign-in then went through
+    Supabase's web OAuth; step 12 replaced it with the native account sheet.) The project
     `.npmrc` sets `legacy-peer-deps=true` because the lock file has no auto-installed peers and
     EAS runs `npm ci`. EAS preview APK that runs without the dev-client launcher or
     Metro.
@@ -147,7 +147,23 @@ Asked for by the user after trying the preview APK. Done in this order, one chat
 ends with lint, typecheck, tests, a device check, commit and push. Ask before any cloud build or
 hosted change.
 
-12. **Native Google sign-in.** Replace the browser OAuth flow (which shows
+12. ~~**Native Google sign-in.**~~ Done; verified on device with preview build 4a4db3cf (installed
+    with `adb install -r`): "Continue with Google" opens Android's "Choose an account to continue to
+    Hobby" sheet with no browser, and Profile then shows "Signed in with Google" (it returns to
+    Profile). The free `@react-native-google-signin/google-signin` can't send a nonce (its Android
+    side is the deprecated Google Sign-In API; nonces are in the paid version), so the app uses a
+    small local Expo module, `modules/google-id`: Android Credential Manager (`GetGoogleIdOption`,
+    falling back to `GetSignInWithGoogleOption` when the phone has no usable account) with
+    `setNonce(sha256(raw))`, and `signInWithIdToken({ token, nonce: raw })`; "Skip nonce check" stays
+    off. `googleid` is pinned to 1.2.0 (1.2.1 is built with Kotlin 2.4; SDK 58 uses 2.2).
+    `expo-web-browser` is removed. The web client ID is `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (`.env`
+    and the EAS `preview` environment, plain text). Google Cloud has the existing Web client plus
+    Android clients for the EAS upload key (SHA-1 `17:1C:F4:84:…:DD:F2:01`) and the local debug key
+    (`5E:8F:16:06:…:AB:F6:25`); Supabase's Google Client IDs list is web, EAS, debug. Branding uses
+    the "hobby" script logo in `assets/brand` (Sacramento, OFL); verification waits for the privacy
+    policy page (step 17). The account sheet shows the launcher icon, still Expo's default.
+    Email sign-in code is unchanged (not re-tested on device).
+    Original plan: replace the browser OAuth flow (which shows
     `<ref>.supabase.co`) with `@react-native-google-signin/google-signin` and
     `supabase.auth.signInWithIdToken` (nonce checked). Needs a Google Cloud web client ID (first in
     Supabase's Google client list) and Android OAuth clients with the SHA-1 of each signing key: the
@@ -199,8 +215,11 @@ hosted change.
     - *Backend.* The production app points at the current hosted project (the one already linked);
       no second project for now. Remove test users and their rows before launch.
     - *EAS `production` environment.* Empty today. Create `EXPO_PUBLIC_SUPABASE_URL` (plain text) and
-      `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (sensitive), as for `preview`.
-    - *Google sign-in.* Add the Play App Signing SHA-1 as an Android OAuth client (step 12).
+      `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (sensitive), and `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
+      (plain text), as for `preview`.
+    - *Google sign-in.* Add the Play App Signing SHA-1 (Play Console → App integrity) as another
+      Android OAuth client and append its ID to Supabase's Google Client IDs. Submit brand
+      verification once the privacy policy and home page are live.
     - *Build.* `eas build --platform android --profile production` makes an .aab; versionCode comes
       from EAS (`appVersionSource: remote`, `autoIncrement`). Same EAS-managed upload key; enrol in
       Play App Signing.
