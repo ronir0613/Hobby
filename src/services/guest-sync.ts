@@ -7,6 +7,7 @@ import { currentRun, statusAfterCheckins } from './checkin-rules';
 import { planGuestMerge, isAlreadyThere, type AttemptMergePlan, type AttemptStep } from './guest-merge';
 import {
   clearGuestData,
+  clearGuestQuiz,
   clearGuestReminders,
   guestPhotoFile,
   hasGuestData,
@@ -14,6 +15,7 @@ import {
   removeGuestAttempt,
 } from './guest-store';
 import { MEDIA_BUCKET } from './media-path';
+import { saveQuizAnswers } from './quiz';
 import { syncReminders } from './reminder-scheduler';
 import { saveReminderSettings } from './reminders';
 
@@ -93,7 +95,7 @@ async function uploadPhoto(plan: AttemptMergePlan<Attempt>, photo: AttemptMergeP
   );
 }
 
-export type MergeResult = { attempts: number; reminders: boolean };
+export type MergeResult = { attempts: number; reminders: boolean; quiz: boolean };
 
 let inFlight: Promise<MergeResult> | null = null;
 
@@ -114,7 +116,7 @@ async function run(userId: string): Promise<MergeResult> {
   const guest = await readGuestData();
   if (!hasGuestData(guest)) {
     await clearGuestData(); // stray photo files, if any
-    return { attempts: 0, reminders: false };
+    return { attempts: 0, reminders: false, quiz: false };
   }
 
   const [attempts, checkins] = await Promise.all([
@@ -145,6 +147,14 @@ async function run(userId: string): Promise<MergeResult> {
     reminders = true;
   }
 
+  // Same for quiz answers: the ones taken on this phone are the latest, so they replace the account's.
+  let quiz = false;
+  if (guest.quiz) {
+    await saveQuizAnswers(guest.quiz);
+    await clearGuestQuiz();
+    quiz = true;
+  }
+
   await clearGuestData();
-  return { attempts: plans.length, reminders };
+  return { attempts: plans.length, reminders, quiz };
 }

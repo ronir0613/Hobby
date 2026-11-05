@@ -7,6 +7,7 @@ import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { signInMethodLabel, useAuthStore } from '@/features/auth/auth-store';
 import { clearPhoneData, runGuestMerge, useGuestMergeStore } from '@/features/auth/guest-merge-store';
 import { MyHobbiesSection } from '@/features/hobbies/MyHobbiesSection';
+import { QuizRow } from '@/features/quiz/QuizRow';
 import { RemindersRow } from '@/features/reminders/RemindersRow';
 import { deleteAccount, signOut } from '@/services/auth';
 import { darkColors, lightColors } from '@/theme/colors';
@@ -147,6 +148,7 @@ export default function ProfileScreen() {
 
             <MyHobbiesSection />
             <RemindersRow />
+            <QuizRow />
 
             {session ? (
               <>

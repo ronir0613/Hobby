@@ -9,6 +9,7 @@ import { DuplicateError, afterFirstCheckin, withStatus } from './guest-lifecycle
 import type { JournalEntry } from './journal';
 import type { MediaAsset } from './media';
 import type { ReminderSettings, ReminderSettingsChanges } from './reminders';
+import { toQuizAnswers, type QuizAnswers } from '../features/quiz/quiz-model';
 
 // Guest mode: everything a signed-out user saves lives on this phone. Rows have the same shape as
 // the Supabase ones (user_id 'guest') so the screens and the shared rules work on both. Small JSON
@@ -24,9 +25,11 @@ export type GuestData = {
   notes: JournalEntry[];
   photos: MediaAsset[]; // storage_path is relative to the document directory
   reminders: ReminderSettings | null;
+  /** The starting quiz's answers, if the guest took it. */
+  quiz: QuizAnswers | null;
 };
 
-const empty = (): GuestData => ({ attempts: [], checkins: [], notes: [], photos: [], reminders: null });
+const empty = (): GuestData => ({ attempts: [], checkins: [], notes: [], photos: [], reminders: null, quiz: null });
 
 let cache: GuestData | null = null;
 let queue: Promise<unknown> = Promise.resolve();
@@ -66,7 +69,7 @@ function notFound(): never {
 }
 
 export function hasGuestData(data: GuestData) {
-  return data.attempts.length > 0 || data.reminders !== null;
+  return data.attempts.length > 0 || data.reminders !== null || data.quiz !== null;
 }
 
 // Attempts
@@ -304,6 +307,20 @@ export function removeGuestAttempt(attemptId: string): Promise<void> {
       result: undefined,
     };
   });
+}
+
+// Starting quiz
+
+export async function getQuizAnswers(): Promise<QuizAnswers | null> {
+  return toQuizAnswers((await readGuestData()).quiz);
+}
+
+export function saveQuizAnswers(answers: QuizAnswers): Promise<QuizAnswers> {
+  return update((data) => ({ data: { ...data, quiz: answers }, result: answers }));
+}
+
+export function clearGuestQuiz(): Promise<void> {
+  return update((data) => ({ data: { ...data, quiz: null }, result: undefined }));
 }
 
 export function clearGuestReminders(): Promise<void> {

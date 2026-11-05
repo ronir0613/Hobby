@@ -1,6 +1,9 @@
+import type { ComponentRef, Ref } from 'react';
 import { Text, type TextProps } from 'react-native';
 
 type AppTextProps = TextProps & {
+  /** Passed to the underlying Text (React 19 ref as a prop), e.g. to move screen reader focus. */
+  ref?: Ref<ComponentRef<typeof Text>>;
   tone?: 'primary' | 'secondary' | 'onAccent';
   weight?: 'regular' | 'medium' | 'semibold' | 'bold';
   size?: number;

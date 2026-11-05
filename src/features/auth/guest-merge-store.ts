@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { loadHobbies, resetHobbies } from '@/features/hobbies/hobbies-store';
 import { loadKeepsakes, resetKeepsakes } from '@/features/keepsakes/keepsakes-store';
+import { loadQuiz, resetQuiz } from '@/features/quiz/quiz-store';
 import { loadReminders, resetReminders } from '@/features/reminders/reminders-store';
 import { clearGuestData } from '@/services/guest-store';
 import { hasDataToMerge, mergeGuestData } from '@/services/guest-sync';
@@ -21,9 +22,11 @@ function reloadEverything() {
   resetHobbies();
   resetKeepsakes();
   resetReminders();
+  resetQuiz();
   void loadHobbies();
   void loadKeepsakes();
   void loadReminders();
+  void loadQuiz();
 }
 
 /** Uploads the guest's phone data to the signed-in account. Safe to call again after a failure. */

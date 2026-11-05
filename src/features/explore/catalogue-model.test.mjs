@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import {
   difficultyLabel,
-  discoverPicks,
   formatMinutes,
   guideFacts,
   interestTypeLabel,
@@ -159,33 +158,4 @@ test('counts days in local time', () => {
   const day = localDayNumber(new Date(2026, 10, 5, 0, 5));
   assert.equal(localDayNumber(new Date(2026, 10, 5, 23, 55)), day);
   assert.equal(localDayNumber(new Date(2026, 10, 6, 0, 5)), day + 1);
-});
-
-test('picks a featured interest and two more from other categories', () => {
-  const interests = [
-    { slug: 'a1', categorySlug: 'a' },
-    { slug: 'a2', categorySlug: 'a' },
-    { slug: 'b1', categorySlug: 'b' },
-    { slug: 'b2', categorySlug: 'b' },
-    { slug: 'c1', categorySlug: 'c' },
-    { slug: 'c2', categorySlug: 'c' },
-  ];
-
-  const today = discoverPicks(interests, 0);
-  assert.equal(today.featured.slug, 'a1');
-  assert.deepEqual(today.more.map(({ slug }) => slug), ['b1', 'c1']);
-
-  // The next day moves on, and the day wraps around the catalogue.
-  assert.equal(discoverPicks(interests, 1).featured.slug, 'a2');
-  assert.equal(discoverPicks(interests, 6).featured.slug, 'a1');
-  assert.equal(discoverPicks(interests, -1).featured.slug, 'c2');
-
-  const picks = discoverPicks(interests, 3);
-  const categories = [picks.featured, ...picks.more].map(({ categorySlug }) => categorySlug);
-  assert.equal(new Set(categories).size, 3);
-});
-
-test('picks fewer when there are few categories, and nothing from an empty catalogue', () => {
-  assert.deepEqual(discoverPicks([{ slug: 'a1', categorySlug: 'a' }], 4).more, []);
-  assert.equal(discoverPicks([], 0), null);
 });

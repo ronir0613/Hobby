@@ -5,6 +5,7 @@ import * as checkins from './checkins';
 import * as guest from './guest-store';
 import * as journal from './journal';
 import * as media from './media';
+import * as quiz from './quiz';
 import * as reminders from './reminders';
 
 // The screens and stores read and write through one of these: the account (Supabase) when signed
@@ -31,6 +32,8 @@ export type HobbyData = {
   mediaUrls: (paths: readonly string[]) => Promise<Record<string, string>>;
   getReminderSettings: typeof reminders.getReminderSettings;
   saveReminderSettings: typeof reminders.saveReminderSettings;
+  getQuizAnswers: typeof quiz.getQuizAnswers;
+  saveQuizAnswers: typeof quiz.saveQuizAnswers;
 };
 
 export const accountData: HobbyData = {
@@ -52,6 +55,8 @@ export const accountData: HobbyData = {
   mediaUrls: (paths) => media.getSignedMediaUrls(paths),
   getReminderSettings: reminders.getReminderSettings,
   saveReminderSettings: reminders.saveReminderSettings,
+  getQuizAnswers: quiz.getQuizAnswers,
+  saveQuizAnswers: quiz.saveQuizAnswers,
 };
 
 export const guestData: HobbyData = {
@@ -82,6 +87,8 @@ export const guestData: HobbyData = {
   mediaUrls: async (paths) => guest.guestPhotoUrls(paths),
   getReminderSettings: guest.getReminderSettings,
   saveReminderSettings: guest.saveReminderSettings,
+  getQuizAnswers: guest.getQuizAnswers,
+  saveQuizAnswers: guest.saveQuizAnswers,
 };
 
 export const dataFor = (signedIn: boolean): HobbyData => (signedIn ? accountData : guestData);

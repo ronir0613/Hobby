@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(24);
 
 select has_table('public', t, 'table ' || t || ' exists')
 from unnest(array['profiles','categories','interests','starter_ideas','attempts',
@@ -42,6 +42,26 @@ select results_eq(
 insert into auth.users (id) values ('00000000-0000-0000-0000-0000000000a1');
 select is((select count(*)::int from public.profiles where id = '00000000-0000-0000-0000-0000000000a1'),
   1, 'a profile is created for each new auth user');
+
+-- Step 15: quiz answers on the profile (all five and the time, or none).
+select throws_ok(
+  $$ update public.profiles set quiz_mood = 'calm' where id = '00000000-0000-0000-0000-0000000000a1' $$,
+  '23514', null, 'quiz: a partial set of answers is rejected');
+select throws_ok(
+  $$ update public.profiles set quiz_setting = 'indoor', quiz_social = 'solo', quiz_time = 'short',
+       quiz_mood = 'sleepy', quiz_cost = 'free', quiz_answered_at = now()
+     where id = '00000000-0000-0000-0000-0000000000a1' $$,
+  '23514', null, 'quiz: an unknown answer is rejected');
+select lives_ok(
+  $$ update public.profiles set quiz_setting = 'indoor', quiz_social = 'solo', quiz_time = 'short',
+       quiz_mood = 'calm', quiz_cost = 'free', quiz_answered_at = now()
+     where id = '00000000-0000-0000-0000-0000000000a1' $$,
+  'quiz: a full set of answers is saved');
+select ok(
+  has_column_privilege('authenticated', 'public.profiles', 'quiz_mood', 'UPDATE')
+    and has_column_privilege('authenticated', 'public.profiles', 'quiz_answered_at', 'UPDATE')
+    and not has_column_privilege('authenticated', 'public.profiles', 'id', 'UPDATE'),
+  'quiz: signed-in users can write their answers, not the id');
 
 select ok(
   not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace

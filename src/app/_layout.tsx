@@ -62,6 +62,7 @@ export default function RootLayout() {
         <Stack.Screen name="interest/[slug]" />
         <Stack.Screen name="attempt/[id]" />
         <Stack.Screen name="reminders" />
+        <Stack.Screen name="quiz" options={{ animation: 'fade_from_bottom' }} />
         <Stack.Screen name="photo/[id]" />
         {/* Signing in sends the user back to the tabs automatically. */}
         <Stack.Protected guard={!signedIn}>

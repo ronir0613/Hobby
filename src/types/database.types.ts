@@ -335,6 +335,12 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          quiz_answered_at: string | null
+          quiz_cost: string | null
+          quiz_mood: string | null
+          quiz_setting: string | null
+          quiz_social: string | null
+          quiz_time: string | null
           updated_at: string
         }
         Insert: {
@@ -342,6 +348,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          quiz_answered_at?: string | null
+          quiz_cost?: string | null
+          quiz_mood?: string | null
+          quiz_setting?: string | null
+          quiz_social?: string | null
+          quiz_time?: string | null
           updated_at?: string
         }
         Update: {
@@ -349,6 +361,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          quiz_answered_at?: string | null
+          quiz_cost?: string | null
+          quiz_mood?: string | null
+          quiz_setting?: string | null
+          quiz_social?: string | null
+          quiz_time?: string | null
           updated_at?: string
         }
         Relationships: []

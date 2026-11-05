@@ -1,12 +1,15 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Pressable, View } from 'react-native';
 import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
-import { discoverPicks, formatMinutes, localDayNumber, type CatalogueInterest } from '@/features/explore/catalogue-model';
+import { useAuthStore } from '@/features/auth/auth-store';
+import { formatMinutes, localDayNumber, type CatalogueInterest } from '@/features/explore/catalogue-model';
 import { ensureCatalogue, loadCatalogue, useCatalogueStore } from '@/features/explore/catalogue-store';
+import { discoverPicks } from '@/features/quiz/quiz-model';
+import { loadQuiz, useQuizStore } from '@/features/quiz/quiz-store';
 
 /** The first starter idea's time, else a typical session. */
 function minutesToBegin(interest: CatalogueInterest) {
@@ -18,9 +21,32 @@ export default function DiscoverScreen() {
   const catalogue = useCatalogueStore((state) => state.catalogue);
   const openInterest = (slug: string) => router.push({ pathname: '/interest/[slug]', params: { slug } });
 
+  const authReady = useAuthStore((state) => state.ready);
+  const quizStatus = useQuizStore((state) => state.status);
+  const answers = useQuizStore((state) => state.answers);
+  const seen = useQuizStore((state) => state.seen);
+  const quizSettled = quizStatus === 'ready' || quizStatus === 'error';
+
   useEffect(() => ensureCatalogue(), []);
-  // Today's picks; they change at local midnight (or when the catalogue reloads).
-  const picks = useMemo(() => discoverPicks(catalogue?.interests ?? [], localDayNumber(new Date())), [catalogue]);
+  // The answers belong to the space (account or phone), so wait until the session is known.
+  useEffect(() => {
+    if (authReady && quizStatus === 'idle') void loadQuiz();
+  }, [authReady, quizStatus]);
+
+  // First open on this phone: offer the quiz once.
+  const offered = useRef(false);
+  useEffect(() => {
+    if (!quizSettled || seen !== false || offered.current) return;
+    offered.current = true;
+    router.push('/quiz');
+  }, [quizSettled, seen]);
+
+  // Ranked by the quiz answers, or today's rotation without them. Ties and the rotation change at
+  // local midnight (or when the catalogue or answers change).
+  const picks = useMemo(
+    () => (quizSettled ? discoverPicks(catalogue?.interests ?? [], answers, localDayNumber(new Date())) : null),
+    [catalogue, answers, quizSettled],
+  );
 
   return (
     <AppScreen>
@@ -43,7 +69,7 @@ export default function DiscoverScreen() {
               onAction={() => void loadCatalogue()}
             />
           </View>
-        ) : !catalogue ? (
+        ) : !catalogue || !quizSettled ? (
           <View className="mt-6">
             <LoadingMessage label="Finding a few ideas…" />
           </View>
@@ -58,10 +84,27 @@ export default function DiscoverScreen() {
             />
           </View>
         ) : (
-          <FeaturedCard interest={picks.featured} onPress={() => openInterest(picks.featured.slug)} />
+          <FeaturedCard
+            interest={picks.featured.interest}
+            reason={picks.featured.reason}
+            onPress={() => openInterest(picks.featured.interest.slug)}
+          />
         )}
 
         <ActionButton label="Explore all interests" href="/explore" style={{ marginTop: 22 }} />
+        {picks && !answers ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityHint="Five quick questions that shape these picks"
+            onPress={() => router.push('/quiz')}
+            className="mt-2 min-h-12 items-center justify-center"
+            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+          >
+            <AppText weight="semibold" size={15} style={{ textDecorationLine: 'underline' }}>
+              Get picks that suit you
+            </AppText>
+          </Pressable>
+        ) : null}
 
         {picks && picks.more.length > 0 ? (
           <View className="mt-10">
@@ -72,7 +115,7 @@ export default function DiscoverScreen() {
               No plan needed. Just follow a small spark.
             </AppText>
             <View className="flex-row gap-3">
-              {picks.more.map((interest) => {
+              {picks.more.map(({ interest, reason }) => {
                 const minutes = minutesToBegin(interest);
                 return (
                   <Pressable
@@ -83,10 +126,17 @@ export default function DiscoverScreen() {
                     className="min-h-24 flex-1 justify-between rounded-2xl border border-border bg-surface p-4 dark:border-dark-border dark:bg-dark-surface"
                     style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
                   >
-                    <AppText weight="semibold" size={16}>
-                      {interest.name}
-                    </AppText>
-                    {minutes ? (
+                    <View>
+                      <AppText weight="semibold" size={16}>
+                        {interest.name}
+                      </AppText>
+                      {reason ? (
+                        <AppText tone="secondary" size={13} style={{ marginTop: 4 }}>
+                          {reason}
+                        </AppText>
+                      ) : null}
+                    </View>
+                    {minutes && !reason ? (
                       <AppText tone="secondary" size={13}>
                         {formatMinutes(minutes)} to begin
                       </AppText>
@@ -102,7 +152,7 @@ export default function DiscoverScreen() {
   );
 }
 
-function FeaturedCard({ interest, onPress }: { interest: CatalogueInterest; onPress: () => void }) {
+function FeaturedCard({ interest, reason, onPress }: { interest: CatalogueInterest; reason: string | null; onPress: () => void }) {
   const minutes = minutesToBegin(interest);
   const starter = interest.starterIdeas[0];
   return (
@@ -119,7 +169,7 @@ function FeaturedCard({ interest, onPress }: { interest: CatalogueInterest; onPr
         className="absolute -right-7 -top-8 h-36 w-36 rounded-full border-[18px] border-accent-soft dark:border-dark-accent-soft"
       />
       <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.3 }}>
-        A GENTLE PLACE TO START
+        {reason ? 'PICKED FOR YOU' : 'A GENTLE PLACE TO START'}
       </AppText>
       <AppText weight="semibold" size={26} style={{ marginTop: 17 }}>
         {interest.name}
@@ -127,7 +177,13 @@ function FeaturedCard({ interest, onPress }: { interest: CatalogueInterest; onPr
       <AppText size={16} style={{ marginTop: 5, maxWidth: 300 }}>
         {interest.description}
       </AppText>
-      {minutes ? (
+      {reason ? (
+        <View className="mt-6 self-start rounded-full bg-surface px-4 py-2 dark:bg-dark-surface">
+          <AppText weight="medium" size={13}>
+            {reason}
+          </AppText>
+        </View>
+      ) : minutes ? (
         <View className="mt-6 self-start rounded-full bg-surface px-4 py-2 dark:bg-dark-surface">
           <AppText weight="medium" size={13}>
             About {formatMinutes(minutes)}

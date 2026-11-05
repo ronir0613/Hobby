@@ -163,26 +163,3 @@ export function guideFacts(interest: Pick<CatalogueInterest, 'setting' | 'social
 export function localDayNumber(date: Date) {
   return Math.floor((date.getTime() - date.getTimezoneOffset() * 60_000) / 86_400_000);
 }
-
-/**
- * Discover's picks for a day: one featured interest and up to two more, each from a different
- * category. Rotates through the whole catalogue, one step a day. Step 15 replaces this with
- * quiz-based ranking.
- */
-export function discoverPicks<T extends { categorySlug: string }>(interests: readonly T[], day: number) {
-  const count = interests.length;
-  if (count === 0) return null;
-  const start = ((day % count) + count) % count;
-  const featured = interests[start];
-  const more: T[] = [];
-  const usedCategories = new Set([featured.categorySlug]);
-  // Start a third of the way round so the extra picks aren't the featured one's neighbours.
-  const offset = Math.max(1, Math.floor(count / 3));
-  for (let step = 0; step < count && more.length < 2; step += 1) {
-    const candidate = interests[(start + offset + step) % count];
-    if (candidate === featured || usedCategories.has(candidate.categorySlug)) continue;
-    usedCategories.add(candidate.categorySlug);
-    more.push(candidate);
-  }
-  return { featured, more };
-}
