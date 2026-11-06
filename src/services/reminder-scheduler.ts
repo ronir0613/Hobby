@@ -174,7 +174,9 @@ export function startReminderSync() {
     }),
   });
 
-  const report = (error: unknown) => console.warn('[reminders] sync failed', error);
+  const report = (error: unknown) => {
+    if (__DEV__) console.warn('[reminders] sync failed', error);
+  };
 
   const { data } = supabase.auth.onAuthStateChange((event) => {
     // Supabase warns against awaiting other Supabase calls inside this callback.

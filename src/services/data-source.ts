@@ -5,6 +5,7 @@ import * as checkins from './checkins';
 import * as guest from './guest-store';
 import * as journal from './journal';
 import * as media from './media';
+import { MediaLimitError, photoFits, type MediaUsage } from './media-limit';
 import * as quiz from './quiz';
 import * as reminders from './reminders';
 
@@ -30,6 +31,10 @@ export type HobbyData = {
   deleteMedia: typeof media.deleteMedia;
   /** Display URLs keyed by storage path. */
   mediaUrls: (paths: readonly string[]) => Promise<Record<string, string>>;
+  /** Space used against the limit; null when it can't be read. */
+  mediaUsage: () => Promise<MediaUsage | null>;
+  /** Frees space held by files left behind by an upload that stopped. */
+  cleanUpMedia: () => Promise<void>;
   getReminderSettings: typeof reminders.getReminderSettings;
   saveReminderSettings: typeof reminders.saveReminderSettings;
   getQuizAnswers: typeof quiz.getQuizAnswers;
@@ -53,6 +58,8 @@ export const accountData: HobbyData = {
   addPhoto: (attemptId, uri) => media.uploadAttemptPhoto({ attemptId, uri }),
   deleteMedia: media.deleteMedia,
   mediaUrls: (paths) => media.getSignedMediaUrls(paths),
+  mediaUsage: media.getMediaUsage,
+  cleanUpMedia: media.removeOrphanFiles,
   getReminderSettings: reminders.getReminderSettings,
   saveReminderSettings: reminders.saveReminderSettings,
   getQuizAnswers: quiz.getQuizAnswers,
@@ -76,6 +83,7 @@ export const guestData: HobbyData = {
   addPhoto: async (attemptId, uri) => {
     const compressed = await media.compressImage(uri);
     try {
+      if (!photoFits(await guest.getMediaUsage(), new File(compressed.uri).size)) throw new MediaLimitError();
       return await guest.addPhotoFile(attemptId, compressed.uri);
     } catch (error) {
       const left = new File(compressed.uri);
@@ -85,6 +93,8 @@ export const guestData: HobbyData = {
   },
   deleteMedia: guest.deleteMedia,
   mediaUrls: async (paths) => guest.guestPhotoUrls(paths),
+  mediaUsage: guest.getMediaUsage,
+  cleanUpMedia: async () => {},
   getReminderSettings: guest.getReminderSettings,
   saveReminderSettings: guest.saveReminderSettings,
   getQuizAnswers: guest.getQuizAnswers,

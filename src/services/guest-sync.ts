@@ -11,9 +11,12 @@ import {
   clearGuestReminders,
   guestPhotoFile,
   hasGuestData,
+  keepOnlyGuestPhotos,
   readGuestData,
   removeGuestAttempt,
 } from './guest-store';
+import { getMediaUsage } from './media';
+import { photoFits, roomLeft, splitByRoom } from './media-limit';
 import { MEDIA_BUCKET } from './media-path';
 import { saveQuizAnswers } from './quiz';
 import { syncReminders } from './reminder-scheduler';
@@ -95,7 +98,8 @@ async function uploadPhoto(plan: AttemptMergePlan<Attempt>, photo: AttemptMergeP
   );
 }
 
-export type MergeResult = { attempts: number; reminders: boolean; quiz: boolean };
+/** `photosLeft`: photos that didn't fit in the account's limit and stay on the phone. */
+export type MergeResult = { attempts: number; reminders: boolean; quiz: boolean; photosLeft: number };
 
 let inFlight: Promise<MergeResult> | null = null;
 
@@ -116,7 +120,7 @@ async function run(userId: string): Promise<MergeResult> {
   const guest = await readGuestData();
   if (!hasGuestData(guest)) {
     await clearGuestData(); // stray photo files, if any
-    return { attempts: 0, reminders: false, quiz: false };
+    return { attempts: 0, reminders: false, quiz: false, photosLeft: 0 };
   }
 
   const [attempts, checkins] = await Promise.all([
@@ -127,14 +131,35 @@ async function run(userId: string): Promise<MergeResult> {
   if (checkins.error) throw checkins.error;
 
   const plans = planGuestMerge(guest, { attempts: attempts.data, checkins: checkins.data }, userId);
+  let usage = await getMediaUsage();
+  let photosLeft = 0;
   for (const plan of plans) {
     for (const step of plan.steps) await runStep(plan, step);
     if (plan.kind === 'join' && plan.steps.length > 0) await applyStatusRules(plan.targetId);
     for (const note of plan.notes) {
       await insertOnce(supabase.from('journal_entries').insert({ id: note.id, attempt_id: plan.targetId, content: note.content }));
     }
-    for (const photo of plan.photos) await uploadPhoto(plan, photo);
-    await removeGuestAttempt(plan.guest.id);
+
+    // Photos over the account's limit stay on the phone; nothing is dropped. With usage unknown,
+    // every photo is tried and the server decides.
+    const { fits, leftOver } = usage ? splitByRoom(plan.photos, roomLeft(usage)) : { fits: plan.photos, leftOver: [] };
+    const keep = new Set(leftOver.map((photo) => photo.id));
+    for (const photo of fits) {
+      try {
+        await uploadPhoto(plan, photo);
+        if (usage) usage = { ...usage, usedBytes: usage.usedBytes + photo.file_size };
+      } catch (error) {
+        usage = await getMediaUsage();
+        if (photoFits(usage, photo.file_size)) throw error;
+        keep.add(photo.id); // another upload took the space meanwhile
+      }
+    }
+    if (keep.size > 0) {
+      await keepOnlyGuestPhotos(plan.guest.id, keep);
+      photosLeft += keep.size;
+    } else {
+      await removeGuestAttempt(plan.guest.id);
+    }
   }
 
   // Settings the guest saved here are the latest choice made on this phone, so they replace the account's.
@@ -155,6 +180,7 @@ async function run(userId: string): Promise<MergeResult> {
     quiz = true;
   }
 
-  await clearGuestData();
-  return { attempts: plans.length, reminders, quiz };
+  // This would delete the photo folder, so only when no photo is waiting for room.
+  if (photosLeft === 0) await clearGuestData();
+  return { attempts: plans.length, reminders, quiz, photosLeft };
 }

@@ -6,7 +6,9 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
   try {
     if (isAuthCallbackUrl(path)) {
       const url = path.includes('://') ? path : `hobby://${path.replace(/^\//, '')}`;
-      completeAuthFromUrl(url).catch((error) => console.warn('Auth link failed:', error));
+      completeAuthFromUrl(url).catch((error) => {
+        if (__DEV__) console.warn('Auth link failed:', error);
+      });
       return '/';
     }
     return path;

@@ -73,7 +73,7 @@ Not collected: location, contacts, financial info, health and fitness, messages,
 1. **Name and profile picture link.** The spec lists only email for Google sign-in, but Google also sends these and Supabase stores them (`auth.users` metadata holds `full_name`, `name` and `avatar_url`). Both are declared here. The picture link is in the privacy policy and has no Data safety row of its own, since no picture is stored.
 2. **Install ID.** expo-updates sends an `EAS-Client-ID` header to Expo on each update check. "Device or other IDs" is the cautious answer. The other reading is that it isn't personal data. I recommend declaring it, since declaring too much costs nothing and an omission can draw a policy flag.
 3. **Time zone** sits with reminder settings under "Other actions". It isn't declared as location.
-4. **Android backup.** `allowBackup` is on, so guest data can go into the user's own Google backup. Play doesn't count that as collection, and the policy mentions it.
+4. **Android backup.** `allowBackup` is on, but the backup rules (from expo-secure-store's plugin, read from the APK) include only shared preferences, so guest data, guest photos and the session aren't backed up. Nothing to declare; the policy now says so. A real restore hasn't been tried.
 
 ## For the Play Console steps later
 

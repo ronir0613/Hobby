@@ -32,6 +32,7 @@ What the database enforces:
 - One attempt per catalogue interest per user (partial unique index, migration `20261104170000`);
   coming back to a hobby moves the same attempt back to `planned`. Custom attempts are not limited.
 - Private `activity-media` bucket, 10 MiB, JPEG/PNG/WebP, path `<user>/<attempt>/<uuid>.<ext>`, owner-only.
+- Limits per person (migrations `20261106200000`, `20261106210000`; see "Limits" below).
 
 What lives in the app instead:
 
@@ -64,14 +65,38 @@ of the 300 ideas have a link (93 links, 58 hobbies): every URL was loaded and it
 the user chose to show no link over a weak one (a retailer, a home page, a page without instructions, or a
 page tied to one country). The report's steps were rewritten as direct instructions.
 
+## Limits
+
+Decided 2026-11-06 on the Free plan (1 GB files, 5 GB egress plus 5 GB cached, 500 MB database). The migrations are written
+and tested but **not pushed yet**.
+
+- **Photos: 10 MB per person** (`media_limit_bytes`), plus 500 files (`media_limit_files`) against tiny-file floods. That is
+  about 20 photos at 0.5 MB or 100 at the 0.1 MB measured on hosted, and about 100 full accounts in 1 GB.
+- A `BEFORE INSERT` trigger on `storage.objects` (`enforce_media_limit`) adds up real files and sizes under a per-person advisory
+  lock. Not a policy: Storage checks policies without seeing other uploads in progress, then writes as a superuser. Its first check may
+  not know the size, so a full account is refused early and a too-large file at the final insert, which always has the size. Files
+  without rows count, so a modified client gains nothing from skipping `media_assets`.
+- `media_assets_use_real_file` requires the file to exist and takes `file_size` from it. Older apps upload first, so they keep working.
+- `my_media_usage()` and `my_orphan_media_paths()` are for the app, which removes files that have had no row for an hour. Select and
+  delete use `is_own_media_file` (no attempt needed), so people can reach and remove files whose attempt is gone.
+- **Guests:** the same 10 MB, enforced in the app only. A merge moves everything else and whatever photos fit (`splitByRoom`); the rest
+  stay on the phone with their attempt (`keepOnlyGuestPhotos`), Profile says so, and the merge retries on launch or "Try again".
+- **Text and rows** (`enforce_row_limit`, per-person lock): notes 2000 characters and 1000 rows, custom titles 200, intention notes
+  2000, avatar path 500, time zone 64, attempts 300, check-ins 5000. About 3 MB per account at most.
+
+Sessions are encrypted on the phone: AES-GCM from expo-crypto over AsyncStorage, with the key in SecureStore
+(`src/lib/supabase/encrypted-storage.ts`). An earlier plain session is kept and encrypted on first read. A failure to encrypt stores the
+value as before, and a value that can't be decrypted just means signing in again. Not yet run on a phone.
+
 ## Verification
 
-`supabase/tests/*.sql` are pgTAP tests (65 assertions: schema and catalogue shape, quiz answers, lifecycle/undo,
-RLS between two users, Storage paths). All three files passed on hosted after step 15 (2026-11-05),
-each run through `supabase db query --remote` inside a rolled-back transaction (no Docker): pgtap
+`supabase/tests/*.sql` are pgTAP tests (125 assertions in 6 files: schema and catalogue shape, quiz answers, lifecycle/undo,
+RLS between two users, Storage paths, the photo limit, text and row limits, cross-user attacks). All passed on hosted on 2026-11-06 with
+both limit migrations applied, each file run through `supabase db query --remote` inside a rolled-back transaction (no Docker): pgtap
 is created inside the transaction and each assertion row is collected in a temp table, since
-`db query` returns only the last result set. The RLS test counts only its own user's check-ins and
-files, because hosted also holds real users' rows.
+`db query` returns only the last result set. The tests count only their own users' rows and
+files, because hosted also holds real users' rows. They insert into `storage.objects` directly, so real uploads through the Storage API
+and two uploads at once are not covered by them.
 
 ## Account deletion
 

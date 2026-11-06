@@ -5,6 +5,7 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { supabase } from '@/lib/supabase/client';
 import type { Tables } from '@/types/database.types';
 
+import { MediaLimitError, photoFits, type MediaUsage } from './media-limit';
 import {
   MAX_MEDIA_BYTES,
   MEDIA_BUCKET,
@@ -44,9 +45,24 @@ export async function compressImage(uri: string) {
   }
 }
 
+/** What this account is using. Null when that can't be read (offline): the server still enforces the limit. */
+export async function getMediaUsage(): Promise<MediaUsage | null> {
+  const { data, error } = await supabase.rpc('my_media_usage').maybeSingle();
+  if (error || !data) return null;
+  return { usedBytes: data.used_bytes, limitBytes: data.limit_bytes };
+}
+
+/** Removes files left without a row (an upload that stopped halfway), so they stop using space. */
+export async function removeOrphanFiles(): Promise<void> {
+  const { data, error } = await supabase.rpc('my_orphan_media_paths');
+  if (error || !data?.length) return;
+  await supabase.storage.from(MEDIA_BUCKET).remove(data);
+}
+
 /**
  * Compresses a local image, uploads it to `<user>/<attempt>/<uuid>.jpg` in the private bucket,
  * then saves its media_assets row. If the row can't be saved, the uploaded file is removed.
+ * A photo that doesn't fit in the person's limit throws MediaLimitError.
  */
 export async function uploadAttemptPhoto(input: {
   attemptId: string;
@@ -61,6 +77,7 @@ export async function uploadAttemptPhoto(input: {
     const size = file.size;
     if (!size) throw new Error('The photo could not be read.');
     if (size > MAX_MEDIA_BYTES) throw new Error('The photo is larger than 10 MB.');
+    if (!photoFits(await getMediaUsage(), size)) throw new MediaLimitError();
 
     const id = Crypto.randomUUID();
     const path = buildMediaPath(userId, input.attemptId, id, 'image/jpeg');
@@ -68,7 +85,11 @@ export async function uploadAttemptPhoto(input: {
     const { error: uploadError } = await supabase.storage
       .from(MEDIA_BUCKET)
       .upload(path, await file.arrayBuffer(), { contentType: 'image/jpeg', upsert: false });
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      // Another upload may have used the space meanwhile; the server's answer doesn't say which.
+      if (!photoFits(await getMediaUsage(), size)) throw new MediaLimitError();
+      throw uploadError;
+    }
 
     const { data, error } = await supabase
       .from('media_assets')

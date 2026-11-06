@@ -9,6 +9,7 @@ import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { signInMethodLabel, useAuthStore } from '@/features/auth/auth-store';
 import { clearPhoneData, runGuestMerge, useGuestMergeStore } from '@/features/auth/guest-merge-store';
 import { MyHobbiesSection } from '@/features/hobbies/MyHobbiesSection';
+import { photosLeftCopy } from '@/features/keepsakes/keepsakes-copy';
 import { QuizRow } from '@/features/quiz/QuizRow';
 import { RemindersRow } from '@/features/reminders/RemindersRow';
 import { deleteAccount, signOut } from '@/services/auth';
@@ -55,6 +56,7 @@ export default function ProfileScreen() {
   const session = useAuthStore((state) => state.session);
   const ready = useAuthStore((state) => state.ready);
   const mergeStatus = useGuestMergeStore((state) => state.status);
+  const photosLeft = useGuestMergeStore((state) => state.photosLeft);
   const [busy, setBusy] = useState<'sign-out' | 'delete' | 'clear' | null>(null);
 
   async function handleSignOut() {
@@ -135,6 +137,10 @@ export default function ProfileScreen() {
                   body="It’s still safe on the phone. Check your connection, then try again."
                   onAction={() => void runGuestMerge()}
                 />
+              </View>
+            ) : session && photosLeft > 0 ? (
+              <View style={{ marginBottom: space['6'] }}>
+                <ErrorMessage {...photosLeftCopy(photosLeft)} onAction={() => void runGuestMerge()} />
               </View>
             ) : null}
 

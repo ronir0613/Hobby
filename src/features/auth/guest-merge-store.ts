@@ -13,9 +13,11 @@ import { useAuthStore } from './auth-store';
 type GuestMergeState = {
   /** 'merging' while the phone's guest data moves to the account; 'failed' leaves it on the phone to retry. */
   status: 'idle' | 'merging' | 'failed';
+  /** Photos that didn't fit in the account's limit, still on the phone. */
+  photosLeft: number;
 };
 
-export const useGuestMergeStore = create<GuestMergeState>(() => ({ status: 'idle' }));
+export const useGuestMergeStore = create<GuestMergeState>(() => ({ status: 'idle', photosLeft: 0 }));
 
 /** Shows the current space again from scratch (after a merge or clearing the phone). */
 function reloadEverything() {
@@ -36,8 +38,8 @@ export async function runGuestMerge() {
   if (!(await hasDataToMerge())) return;
   useGuestMergeStore.setState({ status: 'merging' });
   try {
-    await mergeGuestData(userId);
-    useGuestMergeStore.setState({ status: 'idle' });
+    const { photosLeft } = await mergeGuestData(userId);
+    useGuestMergeStore.setState({ status: 'idle', photosLeft });
   } catch (error) {
     if (__DEV__) console.warn('Moving guest data to the account failed', error);
     useGuestMergeStore.setState({ status: 'failed' });
@@ -65,7 +67,7 @@ export function startGuestMerge() {
     if (userId === lastUserId) return;
     lastUserId = userId;
     if (userId) void runGuestMerge();
-    else useGuestMergeStore.setState({ status: 'idle' });
+    else useGuestMergeStore.setState({ status: 'idle', photosLeft: 0 });
   });
   return () => {
     stop();

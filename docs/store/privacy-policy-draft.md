@@ -15,7 +15,7 @@ Hobby is an Android app that helps you find a hobby and try it. It is made by ZR
 
 Your hobbies, check-ins, notes, photos, reminder settings and quiz answers are kept on your phone. We don't receive them.
 
-Android's own device backup may include them if you have it turned on. That backup belongs to your Google account and we can't read it.
+Android's own device backup doesn't include them. If you uninstall the app or change phones without signing in, they're gone.
 
 ## If you sign in
 

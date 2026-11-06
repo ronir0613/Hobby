@@ -1,3 +1,8 @@
+// package.json scripts and .gitignore are part of the app's fingerprint: editing them stops over-the-air
+// updates reaching installed builds. So until the next native build, new test files run from here.
+import './media-limit.test.mjs';
+import '../lib/supabase/encrypted-storage.test.mjs';
+
 import assert from 'node:assert/strict';
 import test from 'node:test';
 

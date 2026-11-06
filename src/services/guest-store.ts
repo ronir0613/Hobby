@@ -8,6 +8,7 @@ import { toLocalDate } from './checkin-rules';
 import { DuplicateError, afterFirstCheckin, withStatus } from './guest-lifecycle';
 import type { JournalEntry } from './journal';
 import type { MediaAsset } from './media';
+import { MEDIA_LIMIT_BYTES, type MediaUsage } from './media-limit';
 import type { ReminderSettings, ReminderSettingsChanges } from './reminders';
 import { toQuizAnswers, type QuizAnswers } from '../features/quiz/quiz-model';
 
@@ -206,6 +207,12 @@ export async function listMyMedia(): Promise<MediaAsset[]> {
   return newestFirst((await readGuestData()).photos);
 }
 
+/** The same limit as an account, so signing in rarely leaves photos behind. */
+export async function getMediaUsage(): Promise<MediaUsage> {
+  const { photos } = await readGuestData();
+  return { usedBytes: photos.reduce((sum, photo) => sum + photo.file_size, 0), limitBytes: MEDIA_LIMIT_BYTES };
+}
+
 /** File URIs for display, keyed by storage path (files that are gone are left out). */
 export function guestPhotoUrls(paths: readonly string[]): Record<string, string> {
   const urls: Record<string, string> = {};
@@ -303,6 +310,26 @@ export function removeGuestAttempt(attemptId: string): Promise<void> {
         checkins: data.checkins.filter((c) => c.attempt_id !== attemptId),
         notes: data.notes.filter((n) => n.attempt_id !== attemptId),
         photos: data.photos.filter((p) => p.attempt_id !== attemptId),
+      },
+      result: undefined,
+    };
+  });
+}
+
+/**
+ * After a merge that hit the account's limit: the attempt's days, notes and uploaded photos are on
+ * the account, so they go; the photos that didn't fit stay on the phone with their attempt.
+ */
+export function keepOnlyGuestPhotos(attemptId: string, keepPhotoIds: ReadonlySet<string>): Promise<void> {
+  return update((data) => {
+    const uploaded = (p: MediaAsset) => p.attempt_id === attemptId && !keepPhotoIds.has(p.id);
+    for (const photo of data.photos) if (uploaded(photo)) deleteFile(photo.storage_path);
+    return {
+      data: {
+        ...data,
+        checkins: data.checkins.filter((c) => c.attempt_id !== attemptId),
+        notes: data.notes.filter((n) => n.attempt_id !== attemptId),
+        photos: data.photos.filter((p) => !uploaded(p)),
       },
       result: undefined,
     };

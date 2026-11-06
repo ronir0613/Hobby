@@ -7,6 +7,7 @@ import { TextField } from '@/components/TextField';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { dayLabel, toLocalDate } from '@/services/checkins';
 import type { JournalEntry } from '@/services/journal';
+import { isMediaFull, remainingLabel } from '@/services/media-limit';
 import { keepsakeError } from './keepsakes-copy';
 import { MAX_NOTE_LENGTH, cleanNote } from './keepsakes-model';
 import { addNote, addPhoto, editNote, loadKeepsakes, removeNote, useKeepsakesStore } from './keepsakes-store';
@@ -154,6 +155,9 @@ export function KeepsakesSection({ attemptId }: { attemptId: string }) {
   const allPhotos = useKeepsakesStore((state) => state.photos);
   const notes = useMemo(() => allNotes.filter((n) => n.attempt_id === attemptId), [allNotes, attemptId]);
   const photos = useMemo(() => allPhotos.filter((p) => p.attempt_id === attemptId), [allPhotos, attemptId]);
+  const usage = useKeepsakesStore((state) => state.usage);
+  const full = isMediaFull(usage);
+  const remaining = remainingLabel(usage);
 
   const [draft, setDraft] = useState('');
   const [savingNote, setSavingNote] = useState(false);
@@ -249,18 +253,36 @@ export function KeepsakesSection({ attemptId }: { attemptId: string }) {
         <AppText weight="semibold" style={{ marginTop: 24 }}>
           Photos
         </AppText>
+        {full ? (
+          <View
+            accessibilityLiveRegion="polite"
+            className="mt-3 rounded-tile border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted"
+          >
+            <AppText accessibilityRole="alert" variant="small" weight="medium">
+              You’ve reached your photo limit.
+            </AppText>
+            <AppText tone="secondary" variant="small" style={{ marginTop: 4 }}>
+              Delete a photo from any hobby to free up space.
+            </AppText>
+          </View>
+        ) : null}
+        {remaining ? (
+          <AppText tone="secondary" variant="small" style={{ marginTop: 4 }}>
+            {remaining}
+          </AppText>
+        ) : null}
         <View className="mt-3 gap-2">
           <ActionButton
             label="Take a photo"
             variant="secondary"
             onPress={() => void pick('camera')}
-            disabled={uploading}
+            disabled={uploading || full}
           />
           <ActionButton
             label="Choose from gallery"
             variant="secondary"
             onPress={() => void pick('gallery')}
-            disabled={uploading}
+            disabled={uploading || full}
           />
         </View>
         {uploading ? <LoadingMessage label="Saving your photo…" /> : null}
@@ -274,7 +296,7 @@ export function KeepsakesSection({ attemptId }: { attemptId: string }) {
             />
           </View>
         ) : null}
-        {photoError ? <ErrorLine message={photoError} /> : null}
+        {photoError && !full ? <ErrorLine message={photoError} /> : null}
         {photos.length > 0 ? (
           <View className="mt-4 flex-row flex-wrap" style={{ gap: GAP }}>
             {photos.map((photo) => (

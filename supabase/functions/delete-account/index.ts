@@ -9,7 +9,6 @@
 
 import '@supabase/functions-js/edge-runtime.d.ts';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { corsHeaders } from '@supabase/supabase-js/cors';
 
 const BUCKET = 'activity-media';
 const PAGE_SIZE = 1000;
@@ -25,7 +24,7 @@ type ErrorCode =
 function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
@@ -93,7 +92,7 @@ async function removeUserObjects(admin: SupabaseClient, userId: string) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  // Only the Android app calls this, so no browser (CORS) access.
   if (req.method !== 'POST') return fail(405, 'method_not_allowed', 'Use POST.');
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -119,7 +118,8 @@ Deno.serve(async (req) => {
   try {
     filesRemoved = await removeUserObjects(admin, userId);
   } catch (error) {
-    console.error('delete-account: storage', userId, error);
+    // No user id or error detail: Storage messages contain the user's folder path.
+    console.error('delete-account: storage step failed');
     return fail(
       500,
       'storage_delete_failed',
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
 
   const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
   if (deleteError) {
-    console.error('delete-account: auth', userId, deleteError);
+    console.error('delete-account: auth step failed', deleteError.status);
     return fail(
       500,
       'user_delete_failed',

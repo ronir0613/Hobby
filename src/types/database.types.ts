@@ -464,7 +464,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_own_media_file: { Args: { object_name: string }; Returns: boolean }
       is_own_media_path: { Args: { object_name: string }; Returns: boolean }
+      my_media_usage: {
+        Args: never
+        Returns: { limit_bytes: number; used_bytes: number }[]
+      }
+      my_orphan_media_paths: { Args: never; Returns: string[] }
     }
     Enums: {
       [_ in never]: never
