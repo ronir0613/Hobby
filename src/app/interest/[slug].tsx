@@ -5,7 +5,7 @@ import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
 import { BackButton } from '@/components/BackButton';
-import { HobbyArt } from '@/components/HobbyArt';
+import { HOBBY_ART_ASPECT, HobbyArt } from '@/components/HobbyArt';
 import { InterestFacts, InterestGuide } from '@/components/InterestGuide';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { useAuthStore } from '@/features/auth/auth-store';
@@ -87,7 +87,7 @@ export default function InterestScreen() {
   } else {
     body = (
       <>
-        <HobbyArt slug={interest.slug} style={{ height: 176, borderRadius: radius.card }} />
+        <HobbyArt slug={interest.slug} style={{ aspectRatio: HOBBY_ART_ASPECT, borderRadius: radius.card }} />
         <AppText accessibilityRole="header" variant="display" style={{ marginTop: space['6'] }}>
           {interest.name}
         </AppText>

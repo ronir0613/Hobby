@@ -5,7 +5,7 @@ import { View, useColorScheme } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
-import { HobbyArt } from '@/components/HobbyArt';
+import { HOBBY_ART_ASPECT, HobbyArt } from '@/components/HobbyArt';
 import { LockedChallengeCard } from '@/components/LockedChallengeCard';
 import { PressableScale } from '@/components/PressableScale';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
@@ -157,7 +157,7 @@ function FeaturedCard({ interest, onPress }: { interest: CatalogueInterest; onPr
       className={cardClass}
       style={{ marginTop: space['6'] }}
     >
-      <HobbyArt slug={interest.slug} style={{ height: 176 }} />
+      <HobbyArt slug={interest.slug} style={{ aspectRatio: HOBBY_ART_ASPECT }} />
       <View style={{ padding: space.card }}>
         <AppText variant="title">{interest.name}</AppText>
         {interest.description ? (
@@ -185,7 +185,7 @@ function SmallCard({ interest, onPress }: { interest: CatalogueInterest; onPress
       onPress={onPress}
       className={`flex-1 ${cardClass}`}
     >
-      <HobbyArt slug={interest.slug} style={{ height: 96 }} />
+      <HobbyArt slug={interest.slug} style={{ aspectRatio: HOBBY_ART_ASPECT }} />
       <View style={{ padding: space.tile }}>
         <AppText weight="semibold">{interest.name}</AppText>
         {minutes ? (

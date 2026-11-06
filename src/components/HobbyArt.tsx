@@ -3,9 +3,12 @@ import { View, useColorScheme, type StyleProp, type ViewStyle } from 'react-nati
 import { SvgXml } from 'react-native-svg';
 import { hobbyArtXml } from './art/hobby-art';
 
+/** The drawings are 320 × 200. A frame with this ratio shows the whole drawing. */
+export const HOBBY_ART_ASPECT = 320 / 200;
+
 /**
- * The hobby's drawing, filling its box (cropped from the centre). Decorative: hidden from screen
- * readers, since the hobby's name always sits next to it.
+ * The hobby's drawing, filling its box (a box of another shape crops it from the centre).
+ * Decorative: hidden from screen readers, since the hobby's name always sits next to it.
  */
 export function HobbyArt({ slug, style }: { slug: string; style?: StyleProp<ViewStyle> }) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
