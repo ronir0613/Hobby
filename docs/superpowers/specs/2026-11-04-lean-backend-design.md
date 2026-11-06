@@ -332,6 +332,18 @@ hosted change.
     detail screen and Profile. `check-comprehension` still flags Discover (56 words, about 22 s) and Profile (39 words, about 19 s)
     against its 15-second aim; cutting further would remove features, so that's left for the user to decide. The detail screen passes
     as a document people read in full.
+    *Build and release checks (2026-11-06):* the EAS `production` environment has the three variables. Preview build `1fc366f2`
+    (commit `1f5f8a1`) was checked on the phone: camera (camera prompt only), gallery (photo picker, no storage permission held),
+    a reference link opening Chrome, a safety note, the locked card, both themes, guest attempt, check-in and note, reminder alarm restored
+    about a minute after unlock following a reboot and delivered at 9:20 pm, Google sign-in and the guest-to-account merge (1 attempt, check-in,
+    note, 2 photos and the reminder settings on hosted). Storage behaviour on Android 9 and older is untested. Frames now keep the drawings' 16:10 shape
+    (they cut the top and bottom off before). Over-the-air update `01a1b192` (preview channel) downloaded on one restart and applied on the next: a fingerprint
+    from Windows matches an EAS build's (`e29fdace…`), so updates can be published from this PC. Privacy page live at
+    https://ronir0613.github.io/Hobby/privacy/ (`site/`, deployed by `.github/workflows/pages.yml`); the deletion section is `#delete`. The Data safety answers and
+    store text are in `docs/store/`; beyond the outline below they declare the Google name and picture link, Expo's install ID, the Singapore region and Android backup.
+    The site root is a 404: brand verification still needs a home page. Production build `c4c6337a` (commit `929253b`, versionCode 2, same fingerprint, upload key
+    `17:1C:F4:84…`) is built and has not been sent anywhere or run on a device. `BIND_GET_INSTALL_REFERRER_SERVICE` comes from expo-application via expo-notifications;
+    the app never reads it, so it stays, to keep production natively the same as the tested preview.
     *100 days, 100 hobbies (later, paid):* a self-challenge to try 100 different things in 100 days. One hobby is picked at random each
     day, with the same notifications, notes and media for that day and hobby. At the end of the day a notification asks whether
     the person did it: yes finishes the day; no ends that day and moves on to the next hobby. An unconfirmed day stacks onto the next one, and not
