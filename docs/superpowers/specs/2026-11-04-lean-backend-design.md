@@ -79,8 +79,9 @@ and tested but **not pushed yet**.
 - `media_assets_use_real_file` requires the file to exist and takes `file_size` from it. Older apps upload first, so they keep working.
 - `my_media_usage()` and `my_orphan_media_paths()` are for the app, which removes files that have had no row for an hour. Select and
   delete use `is_own_media_file` (no attempt needed), so people can reach and remove files whose attempt is gone.
-- **Guests:** the same 10 MB, enforced in the app only. A merge moves everything else and whatever photos fit (`splitByRoom`); the rest
-  stay on the phone with their attempt (`keepOnlyGuestPhotos`), Profile says so, and the merge retries on launch or "Try again".
+- **Guests:** no limit, since their photos stay on the phone (changed 2026-11-07). A merge moves everything else and whatever photos fit
+  (`splitByRoom`); the rest stay on the phone with their attempt (`keepOnlyGuestPhotos`), Profile says so and mentions upgrades as
+  coming later (text only, nothing to buy yet), and the merge retries on launch or "Try again".
 - **Text and rows** (`enforce_row_limit`, per-person lock): notes 2000 characters and 1000 rows, custom titles 200, intention notes
   2000, avatar path 500, time zone 64, attempts 300, check-ins 5000. About 3 MB per account at most.
 

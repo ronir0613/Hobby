@@ -2,7 +2,7 @@
 export function photosLeftCopy(count: number) {
   return {
     title: count === 1 ? '1 photo is still on this phone.' : `${count} photos are still on this phone.`,
-    body: `Your account has reached its photo limit, so ${count === 1 ? 'it' : 'they'} didn’t move. Delete a photo from your account to make room, then try again.`,
+    body: `Your account has reached its photo limit, so ${count === 1 ? 'it' : 'they'} didn’t move. Delete a photo from your account to make room, then try again. Upgrades with more space are coming later.`,
   };
 }
 

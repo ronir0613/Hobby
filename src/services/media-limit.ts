@@ -1,6 +1,6 @@
 // Pure rules for the per-person photo limit (no Supabase), unit tested with node --test.
-// The server enforces the same total (public.media_limit_bytes); guests' photos stay on the phone
-// and use the same number, so a merge rarely goes over.
+// The server enforces the same total (public.media_limit_bytes). Guests have no limit, because their
+// photos stay on the phone; at sign-in, those that don't fit in the account stay there too.
 
 export const MEDIA_LIMIT_BYTES = 10 * 1024 * 1024;
 

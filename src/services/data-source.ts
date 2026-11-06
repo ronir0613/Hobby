@@ -5,7 +5,7 @@ import * as checkins from './checkins';
 import * as guest from './guest-store';
 import * as journal from './journal';
 import * as media from './media';
-import { MediaLimitError, photoFits, type MediaUsage } from './media-limit';
+import type { MediaUsage } from './media-limit';
 import * as quiz from './quiz';
 import * as reminders from './reminders';
 
@@ -83,7 +83,6 @@ export const guestData: HobbyData = {
   addPhoto: async (attemptId, uri) => {
     const compressed = await media.compressImage(uri);
     try {
-      if (!photoFits(await guest.getMediaUsage(), new File(compressed.uri).size)) throw new MediaLimitError();
       return await guest.addPhotoFile(attemptId, compressed.uri);
     } catch (error) {
       const left = new File(compressed.uri);
@@ -93,7 +92,7 @@ export const guestData: HobbyData = {
   },
   deleteMedia: guest.deleteMedia,
   mediaUrls: async (paths) => guest.guestPhotoUrls(paths),
-  mediaUsage: guest.getMediaUsage,
+  mediaUsage: async () => null, // guests' photos stay on their phone, so they have no limit
   cleanUpMedia: async () => {},
   getReminderSettings: guest.getReminderSettings,
   saveReminderSettings: guest.saveReminderSettings,

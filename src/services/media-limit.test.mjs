@@ -75,6 +75,7 @@ test('the over-limit message counts the photos and says how to make room', () =>
   assert.equal(photosLeftCopy(1).title, '1 photo is still on this phone.');
   assert.equal(photosLeftCopy(3).title, '3 photos are still on this phone.');
   assert.match(photosLeftCopy(3).body, /Delete a photo/);
+  assert.match(photosLeftCopy(3).body, /Upgrades with more space are coming later/);
   assert.match(keepsakeError(new MediaLimitError()), /bigger than the space you have left/);
 });
 

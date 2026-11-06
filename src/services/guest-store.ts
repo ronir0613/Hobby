@@ -8,7 +8,6 @@ import { toLocalDate } from './checkin-rules';
 import { DuplicateError, afterFirstCheckin, withStatus } from './guest-lifecycle';
 import type { JournalEntry } from './journal';
 import type { MediaAsset } from './media';
-import { MEDIA_LIMIT_BYTES, type MediaUsage } from './media-limit';
 import type { ReminderSettings, ReminderSettingsChanges } from './reminders';
 import { toQuizAnswers, type QuizAnswers } from '../features/quiz/quiz-model';
 
@@ -205,12 +204,6 @@ export const guestPhotoFile = (storagePath: string) => new File(Paths.document, 
 
 export async function listMyMedia(): Promise<MediaAsset[]> {
   return newestFirst((await readGuestData()).photos);
-}
-
-/** The same limit as an account, so signing in rarely leaves photos behind. */
-export async function getMediaUsage(): Promise<MediaUsage> {
-  const { photos } = await readGuestData();
-  return { usedBytes: photos.reduce((sum, photo) => sum + photo.file_size, 0), limitBytes: MEDIA_LIMIT_BYTES };
 }
 
 /** File URIs for display, keyed by storage path (files that are gone are left out). */
