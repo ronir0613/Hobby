@@ -40,6 +40,8 @@ module.exports = {
         bold: ['HankenGrotesk_700Bold'],
       },
       borderRadius: { card: '24px', tile: '16px' },
+      // NativeWind counts 1rem as 14 on native, so these would come out as 42, 49 and 56dp.
+      minHeight: { 12: '48px', 14: '56px', 16: '64px' },
     },
   },
   plugins: [],

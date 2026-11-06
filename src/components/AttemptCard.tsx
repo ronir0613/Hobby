@@ -5,15 +5,15 @@ import { useAttemptTitle } from '@/features/hobbies/use-attempt-title';
 import type { Attempt } from '@/services/attempts';
 import { latestCheckinLine, type Checkin } from '@/services/checkins';
 import { radius } from '@/theme/colors';
-import { CategoryArt } from './CategoryArt';
+import { HobbyArt } from './HobbyArt';
 import { ListRow } from './ListGroup';
 import { StatusPill } from './StatusPill';
 
 /** A hobby as a row of the My hobbies list: its category art, name, latest check-in and status. */
 export function AttemptCard({ attempt, checkins }: { attempt: Attempt; checkins: Checkin[] }) {
   const title = useAttemptTitle(attempt);
-  const categorySlug = useCatalogueStore((state) =>
-    attempt.interest_id ? state.catalogue?.interests.find((i) => i.id === attempt.interest_id)?.categorySlug : undefined,
+  const hobbySlug = useCatalogueStore((state) =>
+    attempt.interest_id ? state.catalogue?.interests.find((i) => i.id === attempt.interest_id)?.slug : undefined,
   );
   const line = latestCheckinLine(checkins) ?? (attempt.status === 'planned' ? 'Not started yet' : null);
 
@@ -26,7 +26,7 @@ export function AttemptCard({ attempt, checkins }: { attempt: Attempt; checkins:
       accessibilityRole="button"
       accessibilityLabel={`${title}, ${STATUS_LABELS[attempt.status]}${line ? `, ${line}` : ''}`}
       accessibilityHint="Opens check-ins and status"
-      leading={<CategoryArt slug={categorySlug ?? ''} style={{ width: 48, height: 48, borderRadius: radius.tile - 4 }} />}
+      leading={<HobbyArt slug={hobbySlug ?? ''} style={{ width: 48, height: 48, borderRadius: radius.tile - 4 }} />}
       trailing={<StatusPill status={attempt.status} />}
     />
   );

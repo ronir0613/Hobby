@@ -179,13 +179,13 @@ export default function ProfileScreen() {
               </>
             ) : (
               <>
-                <SectionTitle>Back up and sync</SectionTitle>
+                <SectionTitle>Back up your hobbies</SectionTitle>
                 <View
                   className="rounded-card border border-border bg-surface dark:border-dark-border dark:bg-dark-surface"
                   style={{ padding: space.card }}
                 >
                   <AppText tone="secondary">
-                    Your hobbies are saved on this phone. Sign in to keep them safe and bring them to a new phone.
+                    Saved on this phone only. Sign in to keep them safe.
                   </AppText>
                   <ActionButton label="Sign in" href="/sign-in" style={{ marginTop: space['4'] }} />
                 </View>

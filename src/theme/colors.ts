@@ -16,13 +16,6 @@ export type AppColors = {
   border: string;
   inputBorder: string;
   /** Decorative illustration colours (never text). */
-  artField: string;
-  artLeaf: string;
-  artLeafDeep: string;
-  artSun: string;
-  artGlow: string;
-  artClay: string;
-  artInk: string;
 };
 
 export const lightColors: AppColors = tokens.light;

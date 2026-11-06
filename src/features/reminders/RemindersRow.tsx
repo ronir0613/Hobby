@@ -27,7 +27,7 @@ export function RemindersRow() {
       detail={summary}
       onPress={() => router.push('/reminders')}
       accessibilityRole="button"
-      accessibilityLabel={`Reminders, ${summary}`}
+      accessibilityLabel={`Gentle reminders, ${summary}`}
       accessibilityHint="Opens reminder times and days"
     />
   );

@@ -43,7 +43,7 @@ export function MyHobbiesSection() {
   } else if (groups.length === 0) {
     body = (
       <View>
-        <AppText tone="secondary">{'Nothing here yet. Tap “Try this” on an interest and it will wait here.'}</AppText>
+        <AppText tone="secondary">{'Nothing here yet.'}</AppText>
         <ActionButton
           label="Browse interests"
           href="/explore"

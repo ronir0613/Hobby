@@ -8,7 +8,7 @@ export async function fetchCatalogue(): Promise<Catalogue> {
     supabase
       .from('interests')
       .select(
-        'id, slug, name, description, type, needs, setting, social, session_minutes, cost, moods, category:categories(id, slug, name, sort_order), starter_ideas(id, title, estimated_minutes, sort_order, difficulty, instructions)',
+        'id, slug, name, description, type, needs, setting, social, session_minutes, cost, moods, safety_note, category:categories(id, slug, name, sort_order), starter_ideas(id, title, estimated_minutes, sort_order, difficulty, instructions, starter_idea_links(id, title, url, publisher, sort_order))',
       ),
   ]);
   if (categories.error) throw categories.error;

@@ -157,6 +157,7 @@ export type Database = {
           moods: string[]
           name: string
           needs: string
+          safety_note: string | null
           session_minutes: number
           setting: string
           slug: string
@@ -175,6 +176,7 @@ export type Database = {
           moods: string[]
           name: string
           needs: string
+          safety_note?: string | null
           session_minutes: number
           setting: string
           slug: string
@@ -193,6 +195,7 @@ export type Database = {
           moods?: string[]
           name?: string
           needs?: string
+          safety_note?: string | null
           session_minutes?: number
           setting?: string
           slug?: string
@@ -370,6 +373,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      starter_idea_links: {
+        Row: {
+          id: string
+          is_published: boolean
+          publisher: string
+          sort_order: number
+          starter_idea_id: string
+          title: string
+          url: string
+        }
+        Insert: {
+          id?: string
+          is_published?: boolean
+          publisher: string
+          sort_order: number
+          starter_idea_id: string
+          title: string
+          url: string
+        }
+        Update: {
+          id?: string
+          is_published?: boolean
+          publisher?: string
+          sort_order?: number
+          starter_idea_id?: string
+          title?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starter_idea_links_starter_idea_id_fkey"
+            columns: ["starter_idea_id"]
+            isOneToOne: false
+            referencedRelation: "starter_ideas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       starter_ideas: {
         Row: {

@@ -61,19 +61,19 @@ test('picks fewer when there are few categories, and nothing from an empty catal
 // Ranking with answers
 
 const knitting = interest('knitting', 'crafts', { setting: 'indoor', social: 'solo', sessionMinutes: 20, cost: 'low', moods: ['calm', 'creative'] });
-const meditation = interest('meditation', 'mind', { setting: 'indoor', social: 'solo', sessionMinutes: 10, cost: 'free', moods: ['calm'] });
+const journaling = interest('journaling', 'mind', { setting: 'indoor', social: 'solo', sessionMinutes: 10, cost: 'free', moods: ['calm'] });
 const running = interest('running', 'move', { setting: 'outdoor', social: 'solo', sessionMinutes: 25, cost: 'free', moods: ['active'] });
 const climbing = interest('climbing', 'move-2', { setting: 'indoor', social: 'together', sessionMinutes: 90, cost: 'medium', moods: ['active', 'learning'] });
 const birding = interest('birding', 'nature', { setting: 'outdoor', social: 'either', sessionMinutes: 30, cost: 'free', moods: ['calm', 'learning'] });
 const choir = interest('choir', 'music', { setting: 'indoor', social: 'together', sessionMinutes: 60, cost: 'free', moods: ['creative', 'learning'] });
-const catalogue = [knitting, meditation, running, climbing, birding, choir];
+const catalogue = [knitting, journaling, running, climbing, birding, choir];
 
 test('different answers give different picks', () => {
   const calmIndoors = discoverPicks(catalogue, answers({ mood: 'calm', setting: 'indoor', social: 'solo', time: 'short', cost: 'free' }), 0);
   const activeOutdoors = discoverPicks(catalogue, answers({ mood: 'active', setting: 'outdoor', time: 'medium' }), 0);
   const learnTogether = discoverPicks(catalogue, answers({ mood: 'learning', social: 'together', time: 'long' }), 0);
 
-  assert.equal(calmIndoors.featured.interest.slug, 'meditation');
+  assert.equal(calmIndoors.featured.interest.slug, 'journaling');
   assert.equal(activeOutdoors.featured.interest.slug, 'running');
   assert.equal(learnTogether.featured.interest.slug, 'climbing');
   assert.notDeepEqual(slugs(calmIndoors), slugs(activeOutdoors));
@@ -110,15 +110,15 @@ test('a clash counts against an interest; "either" on the interest half fits', (
 });
 
 test('time: short fits quick sessions, long prefers longer ones but still allows short', () => {
-  assert.deepEqual(scoreInterest(meditation, answers({ time: 'short', mood: 'active' })), { score: 2, reasons: ['15 minutes or less'] });
+  assert.deepEqual(scoreInterest(journaling, answers({ time: 'short', mood: 'active' })), { score: 2, reasons: ['15 minutes or less'] });
   assert.equal(scoreInterest(climbing, answers({ time: 'short', mood: 'calm' })).score, -2);
-  assert.equal(scoreInterest(meditation, answers({ time: 'long', mood: 'active' })).score, 0);
+  assert.equal(scoreInterest(journaling, answers({ time: 'long', mood: 'active' })).score, 0);
   assert.deepEqual(scoreInterest(choir, answers({ time: 'long', mood: 'calm' })).reasons, ['time to settle in']);
   assert.equal(scoreInterest(interest('n', 'n'), answers({ time: 'short', mood: 'active' })).score, 0);
 });
 
 test('cost: "nothing" prefers free and pushes kit down', () => {
-  assert.deepEqual(scoreInterest(meditation, answers({ cost: 'free', mood: 'active', time: 'long' })).reasons, ['free']);
+  assert.deepEqual(scoreInterest(journaling, answers({ cost: 'free', mood: 'active', time: 'long' })).reasons, ['free']);
   assert.ok(scoreInterest(climbing, answers({ cost: 'free' })).score < scoreInterest(climbing, answers({ cost: 'any' })).score);
   assert.deepEqual(scoreInterest(knitting, answers({ cost: 'low', mood: 'active' })).reasons, ['low cost']);
 });

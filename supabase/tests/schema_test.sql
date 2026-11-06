@@ -1,8 +1,8 @@
 begin;
-select plan(24);
+select plan(28);
 
 select has_table('public', t, 'table ' || t || ' exists')
-from unnest(array['profiles','categories','interests','starter_ideas','attempts',
+from unnest(array['profiles','categories','interests','starter_ideas','starter_idea_links','attempts',
                   'checkins','journal_entries','media_assets','notification_preferences']) t;
 
 select ok(
@@ -11,9 +11,9 @@ select ok(
   'RLS is enabled on every public table'
 );
 
-select is((select count(*)::int from public.categories where is_published), 10, 'catalogue: 10 categories');
-select is((select count(*)::int from public.interests where is_published), 68, 'catalogue: 68 interests');
-select is((select count(*)::int from public.starter_ideas where is_published), 204, 'catalogue: 204 starter ideas');
+select is((select count(*)::int from public.categories where is_published), 15, 'catalogue: 15 categories');
+select is((select count(*)::int from public.interests where is_published), 100, 'catalogue: 100 hobbies');
+select is((select count(*)::int from public.starter_ideas where is_published), 300, 'catalogue: 300 starter ideas');
 select is(
   (select count(*)::int from public.interests
    where slug in ('photography','drawing','guitar','cooking','gardening','cycling','meditation','reading','city-walks')),
@@ -32,6 +32,13 @@ select ok(
 select ok(
   not exists (select 1 from public.interests where is_published and coalesce(description, '') = ''),
   'catalogue: every interest has a description');
+select is((select count(*)::int from public.starter_idea_links where is_published), 93, 'catalogue: 93 reference links');
+select ok(
+  not exists (select 1 from public.starter_idea_links
+              where url not like 'https://%' or title = '' or publisher = ''),
+  'catalogue: every link is https with a title and publisher');
+select is((select count(*)::int from public.interests where is_published and safety_note is not null),
+  15, 'catalogue: 15 hobbies have a safety note');
 
 select results_eq(
   $$ select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'activity-media' $$,

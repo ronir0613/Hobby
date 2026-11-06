@@ -53,6 +53,17 @@ and by (interest, sort order), so the 9 original interests and their first idea 
 the catalogue from the database; `src/data/interest-catalog.ts` is gone. The catalogue is public
 (anon read), so guests see it too.
 
+`20261106090000_catalogue_100.sql` (before step 17's build) replaces it with 100 hobbies in 15
+categories and 300 starter ideas, built from `docs/research/` and reviewed by the user. It upserts the same
+way: 49 slugs stay with their ids, 51 are new, and 19 leave with `is_published = false` (with their ideas).
+`travel-exploration` is unpublished. An attempt on a leaving hobby keeps working, since attempts don't check
+`is_published`, and keeps its name through `custom_title`, filled in by the migration (0 rows on hosted). New:
+`interests.safety_note` (15 hobbies) and `starter_idea_links` (starter_idea_id, sort_order, title, url, publisher,
+is_published; https only; public read for published rows through their parents; no client writes). Only 92
+of the 300 ideas have a link (93 links, 58 hobbies): every URL was loaded and its title checked, and
+the user chose to show no link over a weak one (a retailer, a home page, a page without instructions, or a
+page tied to one country). The report's steps were rewritten as direct instructions.
+
 ## Verification
 
 `supabase/tests/*.sql` are pgTAP tests (65 assertions: schema and catalogue shape, quiz answers, lifecycle/undo,
@@ -307,9 +318,26 @@ hosted change.
 
 ### Play Store release (planned 2026-11-05)
 
-17. **Production release.** Nothing here has run yet; every cloud build, EAS change and hosted
-    change waits for the user's go-ahead.
-    - *Permissions.* The preview APK requests permissions the app never uses: `SYSTEM_ALERT_WINDOW`,
+17. **Production release.** Every cloud build, EAS change, hosted change and anything sent to Google
+    Play waits for the user's go-ahead, each time.
+    *Done so far (2026-11-06):* the permissions block (24 `android.blockedPermissions`, checked in a merged
+    release manifest; READ/WRITE_EXTERNAL_STORAGE with maxSdk 32 stay, since expo-image-picker asks for WRITE before
+    the camera below Android 10) and the dependency fixes (5 versions, dedupe, `install-strategy=shallow` removed; expo-doctor
+    20/20). npm audit's 5 moderate issues come from Expo's tooling and are ignored: the only fix downgrades to expo@52.
+    *Catalogue and screens (2026-11-06):* the 100-hobby migration above; one flat drawing per hobby (`HobbyArt`, replacing
+    `CategoryArt` and the `art*` tokens); direct steps, reference links (`Linking.openURL` from expo-linking, checked on the
+    phone: it opened Chrome with no manifest change, since only `canOpenURL` needs Android `queries`) and safety notes on the detail
+    screen; `min-h-12` set to a real 48dp (NativeWind counts 1rem as 14 on native, so it was 42). pgTAP on hosted: 28, 23 and 22
+    assertions pass. Better Design: account claimed; `inspect-spacing` on Android dumps (density 440) scores 100 on Discover, the
+    detail screen and Profile. `check-comprehension` still flags Discover (56 words, about 22 s) and Profile (39 words, about 19 s)
+    against its 15-second aim; cutting further would remove features, so that's left for the user to decide. The detail screen passes
+    as a document people read in full.
+    *100 days, 100 hobbies (later, paid):* a self-challenge to try 100 different things in 100 days. One hobby is picked at random each
+    day, with the same notifications, notes and media for that day and hobby. At the end of the day a notification asks whether
+    the person did it: yes finishes the day; no ends that day and moves on to the next hobby. An unconfirmed day stacks onto the next one, and not
+    opening the challenge that day pauses it. It needs much more storage, so it unlocks with a paywall, which is a long way off. For now
+    Discover shows one locked card with no action; nothing else is built.
+    - *Permissions (done, still to check on a preview APK).* The preview APK requests permissions the app never uses: `SYSTEM_ALERT_WINDOW`,
       `USE_BIOMETRIC` / `USE_FINGERPRINT` (from `expo-secure-store`), `com.google.android.c2dm.permission.RECEIVE`
       (remote push is off) and the launcher badge permissions. Add them to `android.blockedPermissions`
       in app.json, keeping `CAMERA`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `VIBRATE`,
@@ -323,7 +351,7 @@ hosted change.
     - *Google sign-in.* Add the Play App Signing SHA-1 (Play Console → App integrity) as another
       Android OAuth client and append its ID to Supabase's Google Client IDs. Submit brand
       verification once the privacy policy and home page are live.
-    - *Dependencies.* expo-doctor reports 5 minor version mismatches (`npx expo install --check`) and
+    - *Dependencies (done).* expo-doctor reported 5 minor version mismatches (`npx expo install --check`) and
       same-version nested duplicates (expo-manifests and others). Fix them before the production build and
       recheck a preview APK.
     - *Over-the-air updates.* Publish a harmless update to a preview build (`eas update --channel preview

@@ -5,7 +5,8 @@ import { View, useColorScheme } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
-import { CategoryArt } from '@/components/CategoryArt';
+import { HobbyArt } from '@/components/HobbyArt';
+import { LockedChallengeCard } from '@/components/LockedChallengeCard';
 import { PressableScale } from '@/components/PressableScale';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { useAuthStore } from '@/features/auth/auth-store';
@@ -61,9 +62,9 @@ export default function DiscoverScreen() {
         <AppText accessibilityRole="header" variant="display">
           {answers ? 'Picked for you' : 'A place to start'}
         </AppText>
-        {picks ? (
+        {picks?.featured.reason ? (
           <AppText tone="secondary" style={{ marginTop: space['2'] }}>
-            {picks.featured.reason ? `${picks.featured.reason}.` : 'A new mix each day.'}
+            {`${picks.featured.reason}.`}
           </AppText>
         ) : null}
         {picks && !answers ? (
@@ -135,6 +136,8 @@ export default function DiscoverScreen() {
                 size={24}
               />
             </PressableScale>
+
+            <LockedChallengeCard />
           </Animated.View>
         )}
       </View>
@@ -154,7 +157,7 @@ function FeaturedCard({ interest, onPress }: { interest: CatalogueInterest; onPr
       className={cardClass}
       style={{ marginTop: space['6'] }}
     >
-      <CategoryArt slug={interest.categorySlug} style={{ height: 176 }} />
+      <HobbyArt slug={interest.slug} style={{ height: 176 }} />
       <View style={{ padding: space.card }}>
         <AppText variant="title">{interest.name}</AppText>
         {interest.description ? (
@@ -182,7 +185,7 @@ function SmallCard({ interest, onPress }: { interest: CatalogueInterest; onPress
       onPress={onPress}
       className={`flex-1 ${cardClass}`}
     >
-      <CategoryArt slug={interest.categorySlug} style={{ height: 96 }} />
+      <HobbyArt slug={interest.slug} style={{ height: 96 }} />
       <View style={{ padding: space.tile }}>
         <AppText weight="semibold">{interest.name}</AppText>
         {minutes ? (

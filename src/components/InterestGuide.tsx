@@ -1,3 +1,4 @@
+import * as Linking from 'expo-linking';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { useState, type ComponentProps } from 'react';
 import { View, useColorScheme } from 'react-native';
@@ -6,6 +7,7 @@ import {
   formatMinutes,
   guideFacts,
   type CatalogueInterest,
+  type IdeaLink,
   type StarterIdea,
 } from '@/features/explore/catalogue-model';
 import { darkColors, lightColors, space } from '@/theme/colors';
@@ -86,6 +88,55 @@ function IdeaSteps({ steps }: { steps: string[] }) {
   );
 }
 
+/** One reference link. It opens in the phone's browser; a failure shows under it. */
+function IdeaLinkRow({ link }: { link: IdeaLink }) {
+  const [failed, setFailed] = useState(false);
+  const colors = useColorScheme() === 'dark' ? darkColors : lightColors;
+
+  async function open() {
+    setFailed(false);
+    try {
+      await Linking.openURL(link.url);
+    } catch {
+      setFailed(true);
+    }
+  }
+
+  return (
+    <View>
+      <PressableScale
+        pressedScale={0.99}
+        accessibilityRole="link"
+        accessibilityLabel={`${link.title}, ${link.publisher}`}
+        accessibilityHint="Opens in your browser"
+        onPress={() => void open()}
+        className="min-h-12 flex-row items-center gap-3"
+      >
+        <View className="flex-1">
+          <AppText tone="accent" weight="semibold" style={{ textDecorationLine: 'underline' }}>
+            {link.title}
+          </AppText>
+          <AppText variant="small" tone="secondary">
+            {link.publisher}
+          </AppText>
+        </View>
+        <SymbolView
+          name={{ ios: 'arrow.up.right.square', android: 'open_in_new', web: 'open_in_new' }}
+          tintColor={colors.foregroundSecondary}
+          size={20}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+      </PressableScale>
+      {failed ? (
+        <AppText accessibilityRole="alert" accessibilityLiveRegion="polite" variant="small">
+          We couldn&apos;t open this link. Check you have a web browser, then try again.
+        </AppText>
+      ) : null}
+    </View>
+  );
+}
+
 /**
  * One starter idea as a row of the "Ways to begin" list. The first is open; the others fold to
  * their title and time and open on tap, so the screen reads as one next step.
@@ -127,7 +178,39 @@ function IdeaRow({ idea, initiallyOpen }: { idea: StarterIdea; initiallyOpen: bo
           importantForAccessibility="no-hide-descendants"
         />
       </PressableScale>
-      {open ? <IdeaSteps steps={idea.steps} /> : null}
+      {open ? (
+        <>
+          <IdeaSteps steps={idea.steps} />
+          {idea.links.length > 0 ? (
+            <View style={{ marginTop: space['3'] }}>
+              {idea.links.map((link) => (
+                <IdeaLinkRow key={link.id} link={link} />
+              ))}
+            </View>
+          ) : null}
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+function SafetyNote({ note }: { note: string }) {
+  const colors = useColorScheme() === 'dark' ? darkColors : lightColors;
+  return (
+    <View
+      accessible
+      accessibilityLabel={`Safety: ${note}`}
+      className="flex-row rounded-tile border border-input-border bg-muted dark:border-dark-input-border dark:bg-dark-muted"
+      style={{ marginTop: space['3'], padding: space['4'], gap: space['3'] }}
+    >
+      <SymbolView
+        name={{ ios: 'exclamationmark.triangle', android: 'warning', web: 'warning' }}
+        tintColor={colors.foreground}
+        size={20}
+      />
+      <AppText variant="small" style={{ flex: 1 }}>
+        {note}
+      </AppText>
     </View>
   );
 }
@@ -144,6 +227,7 @@ export function InterestGuide({ interest }: { interest: CatalogueInterest }) {
           <AppText tone="secondary" style={{ marginTop: space['2'] }}>
             {interest.needs}
           </AppText>
+          {interest.safetyNote ? <SafetyNote note={interest.safetyNote} /> : null}
         </View>
       ) : null}
       {interest.starterIdeas.length > 0 ? (

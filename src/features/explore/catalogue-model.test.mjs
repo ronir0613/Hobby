@@ -70,10 +70,37 @@ test('maps starter ideas in sort order with their steps and difficulty', () => {
   ).interests;
 
   assert.deepEqual(interest.starterIdeas, [
-    { id: 'First', title: 'First', estimatedMinutes: 15, difficulty: 'easy', steps: ['Sit down.'] },
-    { id: 'Second', title: 'Second', estimatedMinutes: null, difficulty: 'moderate', steps: ['Look.', 'Draw.'] },
-    { id: 'Third', title: 'Third', estimatedMinutes: null, difficulty: null, steps: [] },
+    { id: 'First', title: 'First', estimatedMinutes: 15, difficulty: 'easy', steps: ['Sit down.'], links: [] },
+    { id: 'Second', title: 'Second', estimatedMinutes: null, difficulty: 'moderate', steps: ['Look.', 'Draw.'], links: [] },
+    { id: 'Third', title: 'Third', estimatedMinutes: null, difficulty: null, steps: [], links: [] },
   ]);
+});
+
+test('maps reference links in sort order and the safety note', () => {
+  const link = (title, sort_order) => ({ id: title, title, url: `https://example.com/${title}`, publisher: 'Pub', sort_order });
+  const [interest] = toCatalogue(
+    [arts],
+    [
+      row({
+        slug: 'beekeeping',
+        safety_note: 'Bees sting.',
+        starter_ideas: [idea({ title: 'Visit', starter_idea_links: [link('b', 2), link('a', 1)] })],
+      }),
+      row({ slug: 'drawing' }),
+    ],
+  ).interests;
+
+  assert.equal(interest.safetyNote, 'Bees sting.');
+  assert.deepEqual(interest.starterIdeas[0].links, [
+    { id: 'a', title: 'a', url: 'https://example.com/a', publisher: 'Pub' },
+    { id: 'b', title: 'b', url: 'https://example.com/b', publisher: 'Pub' },
+  ]);
+});
+
+test('a hobby with no safety note and no links gets empty values', () => {
+  const [interest] = toCatalogue([arts], [row({ slug: 'drawing', starter_ideas: [idea({ title: 'Sketch' })] })]).interests;
+  assert.equal(interest.safetyNote, '');
+  assert.deepEqual(interest.starterIdeas[0].links, []);
 });
 
 test('maps the guide and quiz tags', () => {

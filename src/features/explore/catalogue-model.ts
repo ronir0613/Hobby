@@ -10,12 +10,15 @@ export type Difficulty = 'easy' | 'moderate' | 'stretch';
 
 export type CatalogueCategory = { id: string; slug: string; name: string };
 
+export type IdeaLink = { id: string; title: string; url: string; publisher: string };
+
 export type StarterIdea = {
   id: string;
   title: string;
   estimatedMinutes: number | null;
   difficulty: Difficulty | null;
   steps: string[];
+  links: IdeaLink[];
 };
 
 export type CatalogueInterest = {
@@ -28,6 +31,8 @@ export type CatalogueInterest = {
   categorySlug: string;
   /** "What you'll need", one line. Empty if missing. */
   needs: string;
+  /** One short safety line, or empty. */
+  safetyNote: string;
   setting: Setting;
   social: Social;
   sessionMinutes: number | null;
@@ -40,6 +45,8 @@ export type Catalogue = { categories: CatalogueCategory[]; interests: CatalogueI
 
 export type CategoryRow = { id: string; slug: string; name: string; sort_order: number };
 
+export type IdeaLinkRow = { id: string; title: string; url: string; publisher: string; sort_order: number };
+
 export type StarterIdeaRow = {
   id: string;
   title: string;
@@ -47,6 +54,7 @@ export type StarterIdeaRow = {
   sort_order: number;
   difficulty: string | null;
   instructions: string | null;
+  starter_idea_links?: IdeaLinkRow[];
 };
 
 export type InterestRow = {
@@ -56,6 +64,7 @@ export type InterestRow = {
   description: string | null;
   type: string;
   needs: string | null;
+  safety_note?: string | null;
   setting: string | null;
   social: string | null;
   session_minutes: number | null;
@@ -107,6 +116,7 @@ export function toCatalogue(categoryRows: CategoryRow[], interestRows: InterestR
       category: row.category.name,
       categorySlug: row.category.slug,
       needs: row.needs ?? '',
+      safetyNote: row.safety_note ?? '',
       setting: oneOf(row.setting, SETTINGS, 'either'),
       social: oneOf(row.social, SOCIALS, 'either'),
       sessionMinutes: row.session_minutes,
@@ -120,6 +130,9 @@ export function toCatalogue(categoryRows: CategoryRow[], interestRows: InterestR
           estimatedMinutes: idea.estimated_minutes,
           difficulty: DIFFICULTIES.includes(idea.difficulty as Difficulty) ? (idea.difficulty as Difficulty) : null,
           steps: toSteps(idea.instructions),
+          links: [...(idea.starter_idea_links ?? [])]
+            .sort(bySortThenText((link) => link.sort_order, (link) => link.title))
+            .map(({ id, title, url, publisher }) => ({ id, title, url, publisher })),
         })),
     }));
 

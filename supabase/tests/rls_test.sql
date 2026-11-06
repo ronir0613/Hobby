@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(23);
 
 insert into auth.users (id) values
   ('00000000-0000-0000-0000-0000000000a1'),
@@ -11,12 +11,25 @@ insert into public.interests
 select id, 'Secret', 'secret', 'hobby', 'Nothing.', 'indoor', 'solo', 10, 'free', array['calm'], false
 from public.categories where slug = 'music';
 
+-- A link marked published, under the unpublished interest: still invisible
+with idea as (
+  insert into public.starter_ideas (interest_id, sort_order, title, is_published)
+  select id, 1, 'Secret idea', true from public.interests where slug = 'secret'
+  returning id
+)
+insert into public.starter_idea_links (starter_idea_id, sort_order, title, url, publisher, is_published)
+select id, 1, 'Secret link', 'https://example.com/secret', 'Secret', true from idea;
+
 -- ---------- anonymous ----------
 set local role anon;
-select is((select count(*)::int from public.interests), 68, 'anon sees only published interests');
-select is((select count(*)::int from public.starter_ideas), 204, 'anon can read starter ideas');
+select is((select count(*)::int from public.interests), 100, 'anon sees only published interests');
+select is((select count(*)::int from public.starter_ideas), 300, 'anon can read starter ideas');
 select throws_ok($$ insert into public.categories (name, slug) values ('x', 'x') $$,
   '42501', null, 'anon cannot write the catalogue');
+select is((select count(*)::int from public.starter_idea_links), 93, 'anon reads published links only');
+select throws_ok($$ insert into public.starter_idea_links (starter_idea_id, sort_order, title, url, publisher)
+    select id, 99, 'x', 'https://x.test', 'x' from public.starter_ideas limit 1 $$,
+  '42501', null, 'anon cannot write links');
 select throws_ok($$ select * from public.attempts $$, '42501', null, 'anon cannot read attempts');
 reset role;
 
@@ -26,6 +39,11 @@ set local role authenticated;
 
 select throws_ok($$ insert into public.categories (name, slug) values ('x', 'x') $$,
   '42501', null, 'signed-in users cannot write the catalogue');
+select throws_ok($$ insert into public.starter_idea_links (starter_idea_id, sort_order, title, url, publisher)
+    select id, 99, 'x', 'https://x.test', 'x' from public.starter_ideas limit 1 $$,
+  '42501', null, 'signed-in users cannot write links');
+select throws_ok($$ update public.starter_idea_links set title = 'x' $$,
+  '42501', null, 'signed-in users cannot change links');
 
 insert into public.attempts (id, custom_title) values ('20000000-0000-0000-0000-00000000000a', 'A attempt');
 insert into public.checkins (attempt_id, local_date, result)

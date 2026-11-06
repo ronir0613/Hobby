@@ -6,7 +6,7 @@ import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
 import { PressableScale } from '@/components/PressableScale';
 import { AppText } from '@/components/AppText';
-import { CategoryArt } from '@/components/CategoryArt';
+import { HobbyArt } from '@/components/HobbyArt';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { ensureCatalogue, useCatalogueStore } from '@/features/explore/catalogue-store';
@@ -32,8 +32,8 @@ function HobbyKeepsakes({ attempt, notes, photos }: { attempt: Attempt; notes: J
   const { width } = useWindowDimensions();
   // Three tiles across the card's content width (screen gutters and card padding on each side).
   const tile = Math.floor((Math.min(width - space.gutter * 2, 560) - space.card * 2 - GAP * 2) / 3);
-  const categorySlug = useCatalogueStore((state) =>
-    attempt.interest_id ? state.catalogue?.interests.find((i) => i.id === attempt.interest_id)?.categorySlug : undefined,
+  const hobbySlug = useCatalogueStore((state) =>
+    attempt.interest_id ? state.catalogue?.interests.find((i) => i.id === attempt.interest_id)?.slug : undefined,
   );
   const latest = notes[0];
   const colors = useColorScheme() === 'dark' ? darkColors : lightColors;
@@ -48,7 +48,7 @@ function HobbyKeepsakes({ attempt, notes, photos }: { attempt: Attempt; notes: J
         pressedScale={0.99}
         className="min-h-12 flex-row items-center gap-4"
       >
-        <CategoryArt slug={categorySlug ?? ''} style={{ width: 48, height: 48, borderRadius: radius.tile - 4 }} />
+        <HobbyArt slug={hobbySlug ?? ''} style={{ width: 48, height: 48, borderRadius: radius.tile - 4 }} />
         <View style={{ flex: 1 }}>
           <AppText weight="semibold">{title}</AppText>
           <AppText tone="secondary" variant="small" style={{ marginTop: 4 }}>
