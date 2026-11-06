@@ -39,7 +39,7 @@ module.exports = {
         semibold: ['HankenGrotesk_600SemiBold'],
         bold: ['HankenGrotesk_700Bold'],
       },
-      borderRadius: { card: '20px' },
+      borderRadius: { card: '24px', tile: '16px' },
     },
   },
   plugins: [],

@@ -1,9 +1,10 @@
 import { SymbolView } from 'expo-symbols';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, BackHandler, Pressable, Text, View, useColorScheme } from 'react-native';
+import { AccessibilityInfo, BackHandler, Text, View, useColorScheme } from 'react-native';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
+import { PressableScale } from '@/components/PressableScale';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { QUIZ_QUESTIONS, type QuizAnswers } from '@/features/quiz/quiz-model';
 import { markQuizSeen, saveQuiz, useQuizStore } from '@/features/quiz/quiz-store';
@@ -90,36 +91,36 @@ export default function QuizScreen() {
     <AppScreen>
       <View className="flex-row items-center justify-between pt-2">
         {step > 0 ? (
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Previous question"
             onPress={goBack}
             disabled={saving}
             hitSlop={8}
             className="h-12 w-12 items-center justify-center rounded-full"
-            style={({ pressed }) => ({ marginLeft: -12, opacity: pressed ? 0.7 : 1 })}
+            style={{ marginLeft: -12 }}
           >
             <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.foreground} size={24} />
-          </Pressable>
+          </PressableScale>
         ) : (
           <View className="h-12 w-12" />
         )}
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
           accessibilityHint={retake ? 'Keeps your earlier answers' : 'Shows today’s ideas instead'}
           onPress={close}
           disabled={saving}
           className="min-h-12 justify-center px-3"
-          style={({ pressed }) => ({ marginRight: -12, opacity: pressed ? 0.7 : 1 })}
+          style={{ marginRight: -12 }}
         >
-          <AppText weight="semibold" size={15} style={{ textDecorationLine: 'underline' }}>
+          <AppText weight="semibold" style={{ textDecorationLine: 'underline' }}>
             {retake ? 'Cancel' : 'Skip'}
           </AppText>
-        </Pressable>
+        </PressableScale>
       </View>
 
       <View className="pb-8 pt-8">
-        <AppText tone="secondary" weight="medium" size={14}>
+        <AppText tone="secondary" variant="small" weight="medium">
           {`Question ${step + 1} of ${total}`}
         </AppText>
         <View
@@ -128,7 +129,7 @@ export default function QuizScreen() {
           aria-valuemin={0}
           aria-valuemax={total}
           aria-valuenow={step + 1}
-          className="mt-3 h-1.5 overflow-hidden rounded-full bg-border dark:bg-dark-border"
+          className="mt-3 h-1 overflow-hidden rounded-full bg-border dark:bg-dark-border"
         >
           <View className="h-full rounded-full bg-accent dark:bg-dark-accent" style={{ width: `${((step + 1) / total) * 100}%` }} />
         </View>
@@ -136,14 +137,13 @@ export default function QuizScreen() {
         <AppText
           ref={heading}
           accessibilityRole="header"
-          weight="medium"
-          size={32}
-          style={{ lineHeight: 40, marginTop: 32, letterSpacing: -0.8 }}
+          variant="display"
+          style={{ marginTop: 32 }}
         >
           {question.title}
         </AppText>
         {step === 0 ? (
-          <AppText tone="secondary" size={16} style={{ marginTop: 8 }}>
+          <AppText tone="secondary" style={{ marginTop: 8 }}>
             {retake ? 'Change what you like. Discover updates when you finish.' : 'Five quick taps, and Discover suggests ideas that suit you.'}
           </AppText>
         ) : null}
@@ -152,31 +152,30 @@ export default function QuizScreen() {
           {question.options.map((option) => {
             const selected = option.value === chosen;
             return (
-              <Pressable
+              <PressableScale
                 key={option.value}
                 accessibilityRole="radio"
                 aria-checked={selected}
                 aria-disabled={saving}
                 disabled={saving}
                 onPress={() => choose(option.value)}
-                className={`min-h-14 flex-row items-center justify-between rounded-2xl border px-4 py-4 ${
+                className={`min-h-14 flex-row items-center justify-between rounded-tile border px-4 py-4 ${
                   selected
                     ? 'border-accent bg-accent dark:border-dark-accent dark:bg-dark-accent'
                     : 'border-border bg-surface dark:border-dark-border dark:bg-dark-surface'
                 }`}
-                style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
               >
-                <AppText tone={selected ? 'onAccent' : 'primary'} weight={selected ? 'semibold' : 'medium'} size={17}>
+                <AppText tone={selected ? 'onAccent' : 'primary'} weight={selected ? 'semibold' : 'medium'} >
                   {option.label}
                 </AppText>
                 {selected ? (
                   <SymbolView
                     name={{ ios: 'checkmark', android: 'check', web: 'check' }}
                     tintColor={colors.accentForeground}
-                    size={22}
+                    size={24}
                   />
                 ) : null}
-              </Pressable>
+              </PressableScale>
             );
           })}
         </View>

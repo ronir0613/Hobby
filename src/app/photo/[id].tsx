@@ -83,7 +83,7 @@ export default function PhotoScreen() {
       />
     );
   } else {
-    const imageWidth = Math.min(width - 44, 560);
+    const imageWidth = Math.min(width - 48, 560);
     const label = createdLabel(photo.created_at);
     body = (
       <>
@@ -101,10 +101,10 @@ export default function PhotoScreen() {
             onAction={() => void loadKeepsakes()}
           />
         )}
-        <AppText weight="semibold" size={18} style={{ marginTop: 18 }}>
+        <AppText variant="heading" style={{ marginTop: 16 }}>
           {title || 'Photo'}
         </AppText>
-        <AppText tone="secondary" size={15} style={{ marginTop: 2 }}>
+        <AppText tone="secondary" style={{ marginTop: 4 }}>
           {label}
         </AppText>
         <ActionButton
@@ -112,14 +112,14 @@ export default function PhotoScreen() {
           variant="secondary"
           onPress={confirmDelete}
           disabled={busy}
-          style={{ marginTop: 20 }}
+          style={{ marginTop: 16 }}
         />
         {error ? (
           <View
             accessibilityLiveRegion="polite"
-            className="mt-4 rounded-2xl border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted"
+            className="mt-4 rounded-tile border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted"
           >
-            <AppText accessibilityRole="alert" weight="medium" size={14}>
+            <AppText accessibilityRole="alert" variant="small" weight="medium">
               {error}
             </AppText>
           </View>
@@ -132,7 +132,7 @@ export default function PhotoScreen() {
     <AppScreen>
       <View className="pb-8 pt-3">
         <BackButton fallback="/media" />
-        <View className="mt-2.5">{body}</View>
+        <View className="mt-2">{body}</View>
       </View>
     </AppScreen>
   );

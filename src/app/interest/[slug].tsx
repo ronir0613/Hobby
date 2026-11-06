@@ -5,11 +5,14 @@ import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
 import { BackButton } from '@/components/BackButton';
+import { CategoryArt } from '@/components/CategoryArt';
 import { InterestFacts, InterestGuide } from '@/components/InterestGuide';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { interestTypeLabel } from '@/features/explore/catalogue-model';
 import { ensureCatalogue, loadCatalogue, useCatalogueStore } from '@/features/explore/catalogue-store';
 import { giveAnotherGo, loadHobbies, startAttempt, useHobbiesStore } from '@/features/hobbies/hobbies-store';
+import { radius, space } from '@/theme/colors';
 
 function friendlyError(error: unknown) {
   const message = typeof error === 'object' && error && 'message' in error ? String(error.message) : '';
@@ -84,30 +87,29 @@ export default function InterestScreen() {
   } else {
     body = (
       <>
-        <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.5, textTransform: 'uppercase' }}>
-          {interest.category}
-        </AppText>
-        <AppText accessibilityRole="header" weight="medium" size={34} style={{ lineHeight: 40, marginTop: 13, letterSpacing: -0.7 }}>
+        <CategoryArt slug={interest.categorySlug} style={{ height: 176, borderRadius: radius.card }} />
+        <AppText accessibilityRole="header" variant="display" style={{ marginTop: space['6'] }}>
           {interest.name}
         </AppText>
+        <AppText variant="small" tone="secondary" style={{ marginTop: space['1'] }}>
+          {`${interest.category} · ${interestTypeLabel(interest.type).replace(/^A /, 'a ')}`}
+        </AppText>
         {interest.description ? (
-          <AppText tone="secondary" size={16} style={{ marginTop: 9 }}>
-            {interest.description}
-          </AppText>
+          <AppText style={{ marginTop: space['4'] }}>{interest.description}</AppText>
         ) : null}
         <InterestFacts interest={interest} />
         <InterestGuide interest={interest} />
 
         {error ? (
-          <View accessibilityLiveRegion="polite" className="mt-4 rounded-2xl border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted">
-            <AppText accessibilityRole="alert" weight="medium" size={14}>
+          <View accessibilityLiveRegion="polite" className="mt-4 rounded-tile border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted">
+            <AppText accessibilityRole="alert" weight="medium" variant="small">
               {error}
             </AppText>
           </View>
         ) : null}
         {notice ? (
-          <View accessibilityLiveRegion="polite" className="mt-4 rounded-2xl bg-secondary p-4 dark:bg-dark-secondary">
-            <AppText size={14}>{notice}</AppText>
+          <View accessibilityLiveRegion="polite" className="mt-4 rounded-tile bg-secondary p-4 dark:bg-dark-secondary">
+            <AppText variant="small">{notice}</AppText>
           </View>
         ) : null}
 
@@ -121,7 +123,7 @@ export default function InterestScreen() {
               style={{ marginTop: 32 }}
             />
             {!notice ? (
-              <AppText tone="secondary" size={13} style={{ marginTop: 10, textAlign: 'center' }}>
+              <AppText variant="small" tone="secondary" style={{ marginTop: space['3'], textAlign: 'center' }}>
                 {existing.status === 'active' ? 'You are already giving this a go.' : 'This is already in your plans.'}
               </AppText>
             ) : null}
@@ -134,7 +136,7 @@ export default function InterestScreen() {
               disabled={saving}
               style={{ marginTop: 32 }}
             />
-            <AppText tone="secondary" size={13} style={{ marginTop: 10, textAlign: 'center' }}>
+            <AppText variant="small" tone="secondary" style={{ marginTop: space['3'], textAlign: 'center' }}>
               {`${existing.status === 'completed' ? 'You gave this a real go before.' : 'You set this aside before.'} This starts a new go, and your earlier days stay in its history.`}
             </AppText>
           </>
@@ -146,7 +148,7 @@ export default function InterestScreen() {
               disabled={saving}
               style={{ marginTop: 32 }}
             />
-            <AppText tone="secondary" size={13} style={{ marginTop: 10, textAlign: 'center' }}>
+            <AppText variant="small" tone="secondary" style={{ marginTop: space['3'], textAlign: 'center' }}>
               {signedIn
                 ? 'This adds it to your plans. Nothing starts until you are ready.'
                 : 'This adds it to your plans, saved on this phone. Nothing starts until you are ready.'}
@@ -159,9 +161,9 @@ export default function InterestScreen() {
 
   return (
     <AppScreen>
-      <View className="pb-8 pt-3">
+      <View style={{ paddingTop: space['2'], paddingBottom: space['8'] }}>
         <BackButton fallback="/explore" />
-        <View className="mt-2.5">{body}</View>
+        <View style={{ marginTop: space['2'] }}>{body}</View>
       </View>
     </AppScreen>
   );

@@ -8,7 +8,7 @@ export function LoadingMessage({ label }: { label: string }) {
   return (
     <View accessibilityLiveRegion="polite" className="mt-2 flex-row items-center gap-3 py-6">
       <ActivityIndicator color={colors.accentText} />
-      <AppText tone="secondary" size={15}>
+      <AppText tone="secondary">
         {label}
       </AppText>
     </View>
@@ -34,10 +34,10 @@ export function ErrorMessage({
       accessibilityLiveRegion="polite"
       className="mt-2 rounded-card border border-input-border bg-muted p-6 dark:border-dark-input-border dark:bg-dark-muted"
     >
-      <AppText accessibilityRole="alert" weight="semibold" size={18}>
+      <AppText accessibilityRole="alert" variant="heading">
         {title}
       </AppText>
-      <AppText tone="secondary" size={15} style={{ marginTop: 7 }}>
+      <AppText tone="secondary" style={{ marginTop: 8 }}>
         {body}
       </AppText>
       {onAction ? (
@@ -46,7 +46,7 @@ export function ErrorMessage({
           variant="secondary"
           onPress={onAction}
           disabled={busy}
-          style={{ marginTop: 18, alignSelf: 'flex-start' }}
+          style={{ marginTop: 16, alignSelf: 'flex-start' }}
         />
       ) : null}
     </View>

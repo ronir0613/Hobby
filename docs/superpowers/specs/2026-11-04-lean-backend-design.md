@@ -265,10 +265,44 @@ hosted change.
     phone (and on the profile when signed in), retake from Profile. Discover ranks interests by tag
     matches and says why ("Calm, indoors, under 30 minutes").
     *Done:* different answers on the phone give different Discover picks.
-16. **UI refresh.** More refined, not "AI-looking": clearer type scale, more space, fewer nested
-    boxes, hobby images or illustrations, subtle press feedback and transitions. Use the Better Design
-    tools if they're connected. Proposal for Discover, an interest and Profile first; the user
-    approves before the other screens change. DESIGN.md updated to match.
+16. ~~**UI refresh.**~~ Done; checked on the phone (10BC9U0B3J000DZ) with a local release APK
+    (arm64, built 2026-11-06 15:20; no EAS build id), in light and dark: Discover, Explore, an interest, Profile,
+    Media, a hobby, Reminders, the quiz and Sign-in, signed in and as a guest (light guest Discover not
+    captured), plus the icon, splash and press feedback. No crashes logged. Not exercised on this build: the
+    clock and photo pickers, firing reminders, and an over-the-air update (none published yet).
+    *How it works:* `tokens.json` now holds the type scale (display 32/40, title 24/32, heading
+    20/28, body 16/24, small 14/20, label 12/16), the spacing steps (4/8/12/16/24/32/48/64; page
+    gutter 24, card padding 24, tile padding 16), radii (card 24, tile 16) and the illustration
+    colours (`art*`, light and dark); `AppText` takes `variant`, and NativeWind's `rounded-card` /
+    `rounded-tile` read the same radii. Uppercase eyebrows and taglines are gone: each screen opens
+    with a plain title. `PressableScale` is the shared press feedback (98% scale and a
+    12% dim; with reduce motion only the dim), used by buttons, cards, rows and chips; Discover's
+    picks fade in over 240 ms. `CategoryArt` draws one flat illustration per category (10 SVGs in
+    `src/components/art/category-art.ts`, rendered with `react-native-svg`, a new native module) on
+    Discover, the interest screen, Explore, Profile and Media. `ListGroup` / `ListRow` put related
+    rows on one surface with hairlines (Profile's hobbies and preferences, the interest's "Ways to
+    begin"). Discover copy went from 88 words to about 45, and "Explore all interests" became a
+    quiet "See all 68 interests" row. The app icon, adaptive icon, monochrome/notification icon,
+    splash (light and dark) and favicon now come from the "hobby" logo in `assets/brand`.
+    Proposal (Discover, Breathwork, Profile; before/after at 390 px in light and dark, in
+    `docs/design/step16/`) approved before the other screens changed. Better Design's free quota ran
+    out during the illustration review, so its review rules, comprehension check and inspect-spacing
+    did not run on the new screens; rerun them once the account is claimed.
+    *Native-only bugs found on the phone:* web hid both. A Reanimated animated style replaced NativeWind
+    classes (EAS build 81fca325: cards lost surfaces), and NativeWind ignores a `style` function when
+    `className` is on the same `Pressable` (no padding, margins or press feedback). `PressableScale` now
+    tracks the pressed state itself and passes a plain style, all such Pressables use it, and a test bans
+    `style` functions. Explore's chips now scroll to the screen edge.
+    *Local Android builds:* the SDK's CMake 4.1.2 has ninja 1.12.1, which handles the 266-character codegen
+    path that stopped step 13 (`subst` to a drive root fails: autolinking can't find package.json there).
+    After `npx expo prebuild --platform android` (it can clear `android/`), set `cmake.dir` in
+    `android/local.properties`, then run `gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a` with
+    `JAVA_HOME` on Android Studio's jbr, `CMAKE_POLICY_VERSION_MINIMUM=3.5` and, if metaspace runs out,
+    `"-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1536m"`. The APK uses the debug keystore (SHA-1 `5E:8F…`,
+    already registered, so Google sign-in works) and needs an uninstall when swapping with an EAS build.
+    *Over-the-air updates:* `expo-updates` is in, with the `fingerprint` runtime policy and `preview` /
+    `production` channels in eas.json, so JS-only fixes can ship with `eas update` after release. Local APKs
+    have no channel and get no updates.
     *Done:* every screen follows the approved direction on the phone, in light and dark.
 
 ### Play Store release (planned 2026-11-05)
@@ -289,6 +323,12 @@ hosted change.
     - *Google sign-in.* Add the Play App Signing SHA-1 (Play Console → App integrity) as another
       Android OAuth client and append its ID to Supabase's Google Client IDs. Submit brand
       verification once the privacy policy and home page are live.
+    - *Dependencies.* expo-doctor reports 5 minor version mismatches (`npx expo install --check`) and
+      same-version nested duplicates (expo-manifests and others). Fix them before the production build and
+      recheck a preview APK.
+    - *Over-the-air updates.* Publish a harmless update to a preview build (`eas update --channel preview
+      --environment preview`) and confirm it arrives on a restart. This also shows whether a fingerprint from
+      Windows matches an EAS build's; if not, publish from the same platform or change the policy.
     - *Build.* `eas build --platform android --profile production` makes an .aab; versionCode comes
       from EAS (`appVersionSource: remote`, `autoIncrement`). Same EAS-managed upload key; enrol in
       Play App Signing.

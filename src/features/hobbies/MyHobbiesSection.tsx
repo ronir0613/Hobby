@@ -4,9 +4,11 @@ import { View } from 'react-native';
 import { ActionButton } from '@/components/ActionButton';
 import { AppText } from '@/components/AppText';
 import { AttemptCard } from '@/components/AttemptCard';
+import { ListGroup, SectionTitle } from '@/components/ListGroup';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { ensureCatalogue } from '@/features/explore/catalogue-store';
-import { groupAttempts, STATUS_LABELS } from './hobbies-model';
+import { space } from '@/theme/colors';
+import { groupAttempts } from './hobbies-model';
 import { loadHobbies, useHobbiesStore } from './hobbies-store';
 
 /** The attempts (account or this phone), refreshed whenever Profile comes into focus. */
@@ -40,44 +42,32 @@ export function MyHobbiesSection() {
     body = <LoadingMessage label="Loading your hobbies…" />;
   } else if (groups.length === 0) {
     body = (
-      <View className="rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
-        <AppText weight="semibold" size={18}>
-          Nothing here yet.
-        </AppText>
-        <AppText tone="secondary" size={15} style={{ marginTop: 7 }}>
-          {"When something catches your eye, tap “Try this” and it will wait here for you."}
-        </AppText>
-        <ActionButton label="Browse interests" href="/explore" variant="secondary" style={{ marginTop: 18 }} />
+      <View>
+        <AppText tone="secondary">{'Nothing here yet. Tap “Try this” on an interest and it will wait here.'}</AppText>
+        <ActionButton
+          label="Browse interests"
+          href="/explore"
+          variant="secondary"
+          style={{ marginTop: space['4'], alignSelf: 'flex-start' }}
+        />
       </View>
     );
   } else {
+    // Sorted by status (active, planned, completed, dropped); each row carries its status pill.
     body = (
-      <View className="gap-7">
-        {groups.map((group) => (
-          <View key={group.status} className="gap-3">
-            <AppText accessibilityRole="header" weight="semibold" size={17}>
-              {STATUS_LABELS[group.status]}
-            </AppText>
-            {group.attempts.map((attempt) => (
-              <AttemptCard key={attempt.id} attempt={attempt} checkins={checkins[attempt.id] ?? []} />
-            ))}
-          </View>
-        ))}
-      </View>
+      <ListGroup>
+        {groups.flatMap((group) =>
+          group.attempts.map((attempt) => (
+            <AttemptCard key={attempt.id} attempt={attempt} checkins={checkins[attempt.id] ?? []} />
+          )),
+        )}
+      </ListGroup>
     );
   }
 
   return (
-    <View className="mt-8">
-      <AppText
-        accessibilityRole="header"
-        tone="secondary"
-        weight="semibold"
-        size={12}
-        style={{ letterSpacing: 1.5, marginBottom: 12 }}
-      >
-        MY HOBBIES
-      </AppText>
+    <View>
+      <SectionTitle first>My hobbies</SectionTitle>
       {body}
     </View>
   );

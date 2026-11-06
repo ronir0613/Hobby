@@ -1,12 +1,15 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { Pressable, View, useWindowDimensions } from 'react-native';
+import { SymbolView } from 'expo-symbols';
+import { View, useColorScheme, useWindowDimensions } from 'react-native';
 import { ActionButton } from '@/components/ActionButton';
 import { AppScreen } from '@/components/AppScreen';
+import { PressableScale } from '@/components/PressableScale';
 import { AppText } from '@/components/AppText';
+import { CategoryArt } from '@/components/CategoryArt';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { useAuthStore } from '@/features/auth/auth-store';
-import { ensureCatalogue } from '@/features/explore/catalogue-store';
+import { ensureCatalogue, useCatalogueStore } from '@/features/explore/catalogue-store';
 import { sortAttempts } from '@/features/hobbies/hobbies-model';
 import { loadHobbies, useHobbiesStore } from '@/features/hobbies/hobbies-store';
 import { useAttemptTitle } from '@/features/hobbies/use-attempt-title';
@@ -17,6 +20,7 @@ import { PhotoTile } from '@/features/keepsakes/PhotoTile';
 import type { Attempt } from '@/services/attempts';
 import type { JournalEntry } from '@/services/journal';
 import type { MediaAsset } from '@/services/media';
+import { darkColors, lightColors, radius, space } from '@/theme/colors';
 
 const GAP = 8;
 const NO_NOTES: JournalEntry[] = [];
@@ -26,32 +30,37 @@ function HobbyKeepsakes({ attempt, notes, photos }: { attempt: Attempt; notes: J
   const title = useAttemptTitle(attempt);
   const summary = keepsakesSummary(notes.length, photos.length);
   const { width } = useWindowDimensions();
-  // Card padding is 20 on each side.
-  const tile = Math.floor((Math.min(width - 44, 560) - 40 - GAP * 2) / 3);
+  // Three tiles across the card's content width (screen gutters and card padding on each side).
+  const tile = Math.floor((Math.min(width - space.gutter * 2, 560) - space.card * 2 - GAP * 2) / 3);
+  const categorySlug = useCatalogueStore((state) =>
+    attempt.interest_id ? state.catalogue?.interests.find((i) => i.id === attempt.interest_id)?.categorySlug : undefined,
+  );
   const latest = notes[0];
+  const colors = useColorScheme() === 'dark' ? darkColors : lightColors;
 
   return (
-    <View className="rounded-card border border-border bg-surface p-5 dark:border-dark-border dark:bg-dark-surface">
-      <Pressable
+    <View className="rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel={`${title}, ${summary}`}
         accessibilityHint="Opens this hobby to add or change notes and photos"
         onPress={() => router.push({ pathname: '/attempt/[id]', params: { id: attempt.id } })}
-        className="min-h-12 flex-row items-center justify-between gap-3"
-        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+        pressedScale={0.99}
+        className="min-h-12 flex-row items-center gap-4"
       >
+        <CategoryArt slug={categorySlug ?? ''} style={{ width: 48, height: 48, borderRadius: radius.tile - 4 }} />
         <View style={{ flex: 1 }}>
-          <AppText weight="semibold" size={18}>
-            {title}
-          </AppText>
-          <AppText tone="secondary" size={14} style={{ marginTop: 2 }}>
+          <AppText weight="semibold">{title}</AppText>
+          <AppText tone="secondary" variant="small" style={{ marginTop: 4 }}>
             {summary}
           </AppText>
         </View>
-        <AppText weight="semibold" size={15} tone="secondary">
-          Open ›
-        </AppText>
-      </Pressable>
+        <SymbolView
+          name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+          tintColor={colors.foregroundSecondary}
+          size={24}
+        />
+      </PressableScale>
       {photos.length > 0 ? (
         <View className="mt-4 flex-row" style={{ gap: GAP }}>
           {photos.slice(0, 3).map((photo) => (
@@ -60,8 +69,8 @@ function HobbyKeepsakes({ attempt, notes, photos }: { attempt: Attempt; notes: J
         </View>
       ) : null}
       {latest ? (
-        <AppText size={15} style={{ marginTop: 14 }}>
-          <AppText tone="secondary" size={15}>{`${createdLabel(latest.created_at)} · `}</AppText>
+        <AppText style={{ marginTop: 12 }}>
+          <AppText tone="secondary">{`${createdLabel(latest.created_at)} · `}</AppText>
           {notePreview(latest.content)}
         </AppText>
       ) : null}
@@ -111,19 +120,11 @@ export default function MediaScreen() {
   } else if (sorted.length === 0) {
     body = (
       <>
-        <View className="min-h-72 justify-center rounded-[28px] border border-border bg-surface p-7 dark:border-dark-border dark:bg-dark-surface">
-          <View className="mb-6 h-24 w-24 items-center justify-center self-center rounded-[26px] bg-secondary dark:bg-dark-secondary">
-            <View className="h-14 w-14 rotate-[-8deg] rounded-2xl border-2 border-accent dark:border-dark-accent" />
-            <View className="absolute h-14 w-14 translate-x-3 translate-y-2 rotate-[8deg] rounded-2xl border-2 border-accent-soft dark:border-dark-accent-soft" />
-          </View>
-          <AppText weight="semibold" size={22} style={{ textAlign: 'center' }}>
-            Your keepsakes will go here.
-          </AppText>
-          <AppText tone="secondary" size={15} style={{ textAlign: 'center', marginTop: 8 }}>
-            Pick something to try, then add notes and photos from it whenever you like.
-          </AppText>
-        </View>
-        <ActionButton label="Find an idea to try" href="/explore" style={{ marginTop: 22 }} />
+        <AppText weight="semibold">Your keepsakes will go here.</AppText>
+        <AppText tone="secondary" style={{ marginTop: 4 }}>
+          Pick something to try, then add notes and photos from it whenever you like.
+        </AppText>
+        <ActionButton label="Find an idea to try" href="/explore" style={{ marginTop: 16, alignSelf: 'flex-start' }} />
       </>
     );
   } else {
@@ -143,15 +144,12 @@ export default function MediaScreen() {
 
   return (
     <AppScreen>
-      <View className="pb-8 pt-7">
-        <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.5 }}>
-          LITTLE MOMENTS, KEPT
+      <View className="pb-8 pt-8">
+        <AppText accessibilityRole="header" variant="display">
+          Media
         </AppText>
-        <AppText accessibilityRole="header" weight="medium" size={34} style={{ lineHeight: 40, marginTop: 13, letterSpacing: -0.7 }}>
-          A home for the things you make.
-        </AppText>
-        <AppText tone="secondary" size={16} style={{ marginTop: 9, marginBottom: 24 }}>
-          Notes and photos from each of your hobbies. Open a hobby to add more.
+        <AppText tone="secondary" style={{ marginTop: 8, marginBottom: 32 }}>
+          Notes and photos from your hobbies.
         </AppText>
         {body}
       </View>

@@ -23,9 +23,9 @@ function ErrorLine({ message }: { message: string }) {
   return (
     <View
       accessibilityLiveRegion="polite"
-      className="mt-3 rounded-2xl border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted"
+      className="mt-3 rounded-tile border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted"
     >
-      <AppText accessibilityRole="alert" weight="medium" size={14}>
+      <AppText accessibilityRole="alert" variant="small" weight="medium">
         {message}
       </AppText>
     </View>
@@ -77,8 +77,8 @@ function NoteCard({ note }: { note: JournalEntry }) {
   }
 
   return (
-    <View className="rounded-card border border-border bg-surface p-5 dark:border-dark-border dark:bg-dark-surface">
-      <AppText tone="secondary" weight="medium" size={13}>
+    <View className="rounded-card border border-border bg-surface p-6 dark:border-dark-border dark:bg-dark-surface">
+      <AppText tone="secondary" variant="small" weight="medium">
         {label}
       </AppText>
       {editing ? (
@@ -93,7 +93,7 @@ function NoteCard({ note }: { note: JournalEntry }) {
               autoFocus
             />
           </View>
-          <View className="mt-3 flex-row gap-2.5">
+          <View className="mt-3 flex-row gap-2">
             <ActionButton
               label={busy ? 'Saving…' : 'Save'}
               onPress={() => void save()}
@@ -115,10 +115,10 @@ function NoteCard({ note }: { note: JournalEntry }) {
         </>
       ) : (
         <>
-          <AppText size={16} style={{ marginTop: 6 }}>
+          <AppText style={{ marginTop: 4 }}>
             {note.content}
           </AppText>
-          <View className="mt-4 flex-row gap-2.5">
+          <View className="mt-4 flex-row gap-2">
             <ActionButton
               label="Edit"
               variant="secondary"
@@ -163,7 +163,7 @@ export function KeepsakesSection({ attemptId }: { attemptId: string }) {
   const [cameraDenied, setCameraDenied] = useState(false);
 
   const { width } = useWindowDimensions();
-  const contentWidth = Math.min(width - 44, 560);
+  const contentWidth = Math.min(width - 48, 560);
   const tile = Math.floor((contentWidth - GAP * 2) / 3);
 
   useEffect(() => {
@@ -239,17 +239,17 @@ export function KeepsakesSection({ attemptId }: { attemptId: string }) {
         {noteError ? <ErrorLine message={noteError} /> : null}
 
         {notes.length > 0 ? (
-          <View className="mt-5 gap-3">
+          <View className="mt-6 gap-3">
             {notes.map((note) => (
               <NoteCard key={note.id} note={note} />
             ))}
           </View>
         ) : null}
 
-        <AppText weight="semibold" size={16} style={{ marginTop: 24 }}>
+        <AppText weight="semibold" style={{ marginTop: 24 }}>
           Photos
         </AppText>
-        <View className="mt-3 gap-2.5">
+        <View className="mt-3 gap-2">
           <ActionButton
             label="Take a photo"
             variant="secondary"
@@ -282,7 +282,7 @@ export function KeepsakesSection({ attemptId }: { attemptId: string }) {
             ))}
           </View>
         ) : !uploading ? (
-          <AppText tone="secondary" size={14} style={{ marginTop: 10 }}>
+          <AppText tone="secondary" variant="small" style={{ marginTop: 8 }}>
             No photos yet. Photos are shrunk a little before they’re saved.
           </AppText>
         ) : null}
@@ -292,10 +292,10 @@ export function KeepsakesSection({ attemptId }: { attemptId: string }) {
 
   return (
     <>
-      <AppText accessibilityRole="header" weight="semibold" size={18} style={{ marginTop: 28 }}>
+      <AppText accessibilityRole="header" variant="heading" style={{ marginTop: 24 }}>
         Notes and photos
       </AppText>
-      <AppText tone="secondary" size={14} style={{ marginTop: 2 }}>
+      <AppText tone="secondary" variant="small" style={{ marginTop: 4 }}>
         {signedIn ? 'Only you can see these.' : 'Kept privately on this phone.'}
       </AppText>
       {body}

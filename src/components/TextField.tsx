@@ -10,12 +10,12 @@ export function TextField({ label, ...inputProps }: TextFieldProps) {
 
   return (
     <View>
-      <AppText weight="semibold" size={14} style={{ marginBottom: 7 }}>
+      <AppText variant="small" weight="semibold" style={{ marginBottom: 8 }}>
         {label}
       </AppText>
       <TextInput
         accessibilityLabel={label}
-        className="min-h-12 rounded-2xl border border-input-border bg-surface px-4 text-base dark:border-dark-input-border dark:bg-dark-surface"
+        className="min-h-12 rounded-tile border border-input-border bg-surface px-4 text-base dark:border-dark-input-border dark:bg-dark-surface"
         placeholderTextColor={colors.foregroundSecondary}
         style={{
           color: colors.foreground,

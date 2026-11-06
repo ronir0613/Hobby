@@ -22,7 +22,7 @@ export function StatusList({ value }: { value: AttemptStatus }) {
         return (
           <View
             key={status}
-            className={`min-h-12 flex-row items-center gap-4 px-5 py-3.5 ${
+            className={`min-h-12 flex-row items-center gap-4 px-6 py-3.5 ${
               index > 0 ? 'border-t border-border dark:border-dark-border' : ''
             } ${current ? 'bg-secondary dark:bg-dark-secondary' : ''}`}
           >
@@ -31,11 +31,11 @@ export function StatusList({ value }: { value: AttemptStatus }) {
               style={{ backgroundColor: current ? colors.accentText : colors.border }}
             />
             <View className="flex-1">
-              <AppText weight={current ? 'semibold' : 'medium'} size={16} tone={current ? 'primary' : 'secondary'}>
+              <AppText weight={current ? 'semibold' : 'medium'}  tone={current ? 'primary' : 'secondary'}>
                 {STATUS_LABELS[status]}
                 {current ? ' · now' : ''}
               </AppText>
-              <AppText tone="secondary" size={14}>
+              <AppText tone="secondary" variant="small">
                 {STATUS_DESCRIPTIONS[status]}
               </AppText>
             </View>

@@ -121,14 +121,11 @@ export default function SignInScreen() {
       <View className="pb-8 pt-3">
         <BackButton fallback="/profile" />
 
-        <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.5, marginTop: 10 }}>
-          {creating ? 'NEW HERE' : 'WELCOME BACK'}
+        <AppText accessibilityRole="header" variant="display" style={{ marginTop: 8 }}>
+          {creating ? 'Create an account' : 'Sign in'}
         </AppText>
-        <AppText accessibilityRole="header" weight="medium" size={34} style={{ lineHeight: 40, marginTop: 13, letterSpacing: -0.7 }}>
-          {creating ? 'Make a little room to begin.' : 'Keep your experiments in one place.'}
-        </AppText>
-        <AppText tone="secondary" size={16} style={{ marginTop: 9 }}>
-          Your attempts, notes and reminders stay with your account.
+        <AppText tone="secondary" style={{ marginTop: 8 }}>
+          Keep your hobbies, notes and reminders safe, and use them on a new phone.
         </AppText>
 
         <ActionButton
@@ -136,12 +133,12 @@ export default function SignInScreen() {
           variant="secondary"
           onPress={continueWithGoogle}
           disabled={busy !== null}
-          style={{ marginTop: 28 }}
+          style={{ marginTop: 24 }}
         />
 
         <View className="my-6 flex-row items-center gap-3" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <View className="h-px flex-1 bg-border dark:bg-dark-border" />
-          <AppText tone="secondary" size={13}>
+          <AppText tone="secondary" variant="small">
             or
           </AppText>
           <View className="h-px flex-1 bg-border dark:bg-dark-border" />
@@ -178,15 +175,15 @@ export default function SignInScreen() {
         </View>
 
         {error ? (
-          <View accessibilityLiveRegion="polite" className="mt-4 rounded-2xl border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted">
-            <AppText accessibilityRole="alert" weight="medium" size={14}>
+          <View accessibilityLiveRegion="polite" className="mt-4 rounded-tile border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted">
+            <AppText accessibilityRole="alert" variant="small" weight="medium">
               {error}
             </AppText>
           </View>
         ) : null}
         {notice ? (
-          <View accessibilityLiveRegion="polite" className="mt-4 rounded-2xl bg-secondary p-4 dark:bg-dark-secondary">
-            <AppText size={14}>{notice}</AppText>
+          <View accessibilityLiveRegion="polite" className="mt-4 rounded-tile bg-secondary p-4 dark:bg-dark-secondary">
+            <AppText variant="small">{notice}</AppText>
           </View>
         ) : null}
 
@@ -194,7 +191,7 @@ export default function SignInScreen() {
           label={busy === 'email' ? (creating ? 'Creating account…' : 'Signing in…') : creating ? 'Create account' : 'Sign in'}
           onPress={submitEmail}
           disabled={busy !== null}
-          style={{ marginTop: 20 }}
+          style={{ marginTop: 16 }}
         />
 
         <Pressable
@@ -203,9 +200,9 @@ export default function SignInScreen() {
           disabled={busy !== null}
           className="mt-3 min-h-12 items-center justify-center"
         >
-          <AppText tone="secondary" size={14}>
+          <AppText tone="secondary" variant="small">
             {creating ? 'Already have an account? ' : 'New here? '}
-            <AppText weight="semibold" size={14} style={{ color: colors.accentText }}>
+            <AppText variant="small" weight="semibold" style={{ color: colors.accentText }}>
               {creating ? 'Sign in' : 'Create an account'}
             </AppText>
           </AppText>

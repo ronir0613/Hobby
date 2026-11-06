@@ -1,27 +1,47 @@
-import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
-import { Pressable, View, useColorScheme } from 'react-native';
+import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { useState, type ComponentProps } from 'react';
+import { View, useColorScheme } from 'react-native';
 import {
   difficultyLabel,
   formatMinutes,
   guideFacts,
-  interestTypeLabel,
   type CatalogueInterest,
   type StarterIdea,
 } from '@/features/explore/catalogue-model';
-import { darkColors, lightColors } from '@/theme/colors';
+import { darkColors, lightColors, space } from '@/theme/colors';
 import { AppText } from './AppText';
+import { PressableScale } from './PressableScale';
 
-/** Quick facts as quiet pills: hobby/habit, setting, company, time, cost. */
+type Glyph = ComponentProps<typeof SymbolView>['name'];
+type AndroidGlyph = NonNullable<Extract<Glyph, { android?: unknown }>['android']>;
+const glyph = (ios: SFSymbol, android: AndroidGlyph): Glyph => ({ ios, android, web: android });
+
+function factGlyphs(interest: CatalogueInterest): Glyph[] {
+  const glyphs = [
+    interest.setting === 'outdoor' ? glyph('leaf', 'park') : glyph('house', 'home'),
+    interest.social === 'solo' ? glyph('person', 'person') : glyph('person.2', 'group'),
+  ];
+  if (interest.sessionMinutes) glyphs.push(glyph('clock', 'schedule'));
+  glyphs.push(glyph('creditcard', 'payments'));
+  return glyphs;
+}
+
+/** Setting, company, time and cost as a quiet two-column list with icons (no pills). */
 export function InterestFacts({ interest }: { interest: CatalogueInterest }) {
-  const facts = [interestTypeLabel(interest.type), ...guideFacts(interest)];
+  const colors = useColorScheme() === 'dark' ? darkColors : lightColors;
+  const facts = guideFacts(interest);
+  const glyphs = factGlyphs(interest);
   return (
-    <View accessibilityLabel={facts.join(', ')} accessible className="mt-6 flex-row flex-wrap gap-2">
-      {facts.map((fact) => (
-        <View key={fact} className="rounded-full bg-muted px-4 py-2 dark:bg-dark-muted">
-          <AppText weight="medium" size={13}>
-            {fact}
-          </AppText>
+    <View
+      accessible
+      accessibilityLabel={facts.join(', ')}
+      className="flex-row flex-wrap"
+      style={{ marginTop: space['6'], rowGap: space['3'] }}
+    >
+      {facts.map((fact, index) => (
+        <View key={fact} className="w-1/2 flex-row items-center" style={{ gap: space['2'], paddingRight: space['2'] }}>
+          <SymbolView name={glyphs[index]} tintColor={colors.foregroundSecondary} size={20} />
+          <AppText style={{ flex: 1 }}>{fact}</AppText>
         </View>
       ))}
     </View>
@@ -40,30 +60,26 @@ function ideaMeta(idea: StarterIdea) {
 function IdeaHeader({ idea }: { idea: StarterIdea }) {
   const meta = ideaMeta(idea);
   return (
-    <View className="flex-1 gap-1">
+    <View className="flex-1">
+      <AppText weight="semibold">{idea.title}</AppText>
       {meta ? (
-        <AppText tone="secondary" weight="medium" size={13}>
+        <AppText variant="small" tone="secondary" style={{ marginTop: space['1'] }}>
           {meta}
         </AppText>
       ) : null}
-      <AppText weight="semibold" size={18}>
-        {idea.title}
-      </AppText>
     </View>
   );
 }
 
 function IdeaSteps({ steps }: { steps: string[] }) {
   return (
-    <View className="mt-3 gap-2">
+    <View style={{ marginTop: space['3'], gap: space['2'] }}>
       {steps.map((step, index) => (
         <View key={index} className="flex-row" accessible accessibilityLabel={`Step ${index + 1}. ${step}`}>
-          <AppText tone="secondary" weight="semibold" size={15} style={{ width: 24 }}>
+          <AppText tone="secondary" style={{ width: 24 }}>
             {index + 1}.
           </AppText>
-          <AppText size={15} style={{ flex: 1 }}>
-            {step}
-          </AppText>
+          <AppText style={{ flex: 1 }}>{step}</AppText>
         </View>
       ))}
     </View>
@@ -71,33 +87,32 @@ function IdeaSteps({ steps }: { steps: string[] }) {
 }
 
 /**
- * One starter idea. The first is shown open; the others fold to their title and time and open
- * on tap, so the screen reads as one next step instead of a page of instructions.
+ * One starter idea as a row of the "Ways to begin" list. The first is open; the others fold to
+ * their title and time and open on tap, so the screen reads as one next step.
  */
-function IdeaCard({ idea, initiallyOpen }: { idea: StarterIdea; initiallyOpen: boolean }) {
+function IdeaRow({ idea, initiallyOpen }: { idea: StarterIdea; initiallyOpen: boolean }) {
   const [open, setOpen] = useState(initiallyOpen);
   const colors = useColorScheme() === 'dark' ? darkColors : lightColors;
   const hasSteps = idea.steps.length > 0;
-  const cardClass = 'rounded-card border border-border bg-surface p-5 dark:border-dark-border dark:bg-dark-surface';
+  const pad = { paddingHorizontal: space.card, paddingVertical: space['4'] };
 
-  if (!hasSteps || initiallyOpen) {
+  if (!hasSteps) {
     return (
-      <View className={cardClass}>
+      <View style={pad}>
         <IdeaHeader idea={idea} />
-        {hasSteps ? <IdeaSteps steps={idea.steps} /> : null}
       </View>
     );
   }
 
   return (
-    <View className={cardClass}>
-      <Pressable
+    <View style={pad}>
+      <PressableScale
+        pressedScale={0.99}
         accessibilityRole="button"
         aria-expanded={open}
         accessibilityHint={open ? 'Hides the steps' : 'Shows the steps'}
         onPress={() => setOpen((value) => !value)}
         className="min-h-12 flex-row items-center gap-3"
-        style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
       >
         <IdeaHeader idea={idea} />
         <SymbolView
@@ -111,34 +126,39 @@ function IdeaCard({ idea, initiallyOpen }: { idea: StarterIdea; initiallyOpen: b
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         />
-      </Pressable>
+      </PressableScale>
       {open ? <IdeaSteps steps={idea.steps} /> : null}
     </View>
   );
 }
 
-/** "What you'll need" and the starter ideas, easiest first. */
+/** "What you'll need" and the starter ideas, easiest first, in one list. */
 export function InterestGuide({ interest }: { interest: CatalogueInterest }) {
   return (
     <>
       {interest.needs ? (
-        <View className="mt-8 gap-1">
-          <AppText accessibilityRole="header" weight="semibold" size={17}>
+        <View style={{ marginTop: space['8'] }}>
+          <AppText accessibilityRole="header" variant="heading">
             What you&apos;ll need
           </AppText>
-          <AppText tone="secondary" size={16}>
+          <AppText tone="secondary" style={{ marginTop: space['2'] }}>
             {interest.needs}
           </AppText>
         </View>
       ) : null}
       {interest.starterIdeas.length > 0 ? (
-        <View className="mt-8">
-          <AppText accessibilityRole="header" weight="semibold" size={17}>
+        <View style={{ marginTop: space['8'] }}>
+          <AppText accessibilityRole="header" variant="heading" style={{ marginBottom: space['3'] }}>
             Ways to begin
           </AppText>
-          <View className="mt-3 gap-3">
+          <View className="overflow-hidden rounded-card border border-border bg-surface dark:border-dark-border dark:bg-dark-surface">
             {interest.starterIdeas.map((idea, index) => (
-              <IdeaCard key={idea.id} idea={idea} initiallyOpen={index === 0} />
+              <View key={idea.id}>
+                {index > 0 ? (
+                  <View className="h-px bg-border dark:bg-dark-border" style={{ marginLeft: space.card }} />
+                ) : null}
+                <IdeaRow idea={idea} initiallyOpen={index === 0} />
+              </View>
             ))}
           </View>
         </View>

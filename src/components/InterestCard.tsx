@@ -1,42 +1,37 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { radius, space } from '@/theme/colors';
 import { AppText } from './AppText';
+import { CategoryArt } from './CategoryArt';
+import { PressableScale } from './PressableScale';
 
 type InterestCardProps = {
-  interest: { name: string; category: string; description: string; starterIdea?: string };
+  interest: { name: string; category: string; categorySlug: string; description: string };
   onPress?: () => void;
 };
 
+/** An interest in a list: its category art, name, category and a short description. */
 export function InterestCard({ interest, onPress }: InterestCardProps) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityHint={onPress ? 'Opens this interest' : undefined}
       disabled={!onPress}
       onPress={onPress}
-      className="mb-3 rounded-card border border-border bg-surface p-5 dark:border-dark-border dark:bg-dark-surface"
-      style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
+      className="flex-row items-start rounded-card border border-border bg-surface dark:border-dark-border dark:bg-dark-surface"
+      style={{ padding: space.tile, gap: space['4'] }}
     >
-      <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.1, textTransform: 'uppercase' }}>
-        {interest.category}
-      </AppText>
-      <AppText weight="semibold" size={21} style={{ marginTop: 7 }}>
-        {interest.name}
-      </AppText>
-      {interest.description ? (
-        <AppText tone="secondary" size={15} style={{ marginTop: 5 }}>
-          {interest.description}
+      <CategoryArt slug={interest.categorySlug} style={{ width: 72, height: 72, borderRadius: radius.tile - 4 }} />
+      <View className="flex-1">
+        <AppText weight="semibold">{interest.name}</AppText>
+        <AppText variant="small" tone="secondary">
+          {interest.category}
         </AppText>
-      ) : null}
-      {interest.starterIdea ? (
-        <View className="mt-4 rounded-2xl bg-muted px-4 py-3 dark:bg-dark-muted">
-          <AppText tone="secondary" size={13}>
-            A first small step
+        {interest.description ? (
+          <AppText variant="small" style={{ marginTop: space['1'] }} numberOfLines={2}>
+            {interest.description}
           </AppText>
-          <AppText weight="medium" size={15} style={{ marginTop: 2 }}>
-            {interest.starterIdea}
-          </AppText>
-        </View>
-      ) : null}
-    </Pressable>
+        ) : null}
+      </View>
+    </PressableScale>
   );
 }

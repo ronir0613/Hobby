@@ -104,22 +104,19 @@ export default function AttemptScreen() {
 
     body = (
       <>
-        <AppText tone="secondary" weight="semibold" size={12} style={{ letterSpacing: 1.5 }}>
-          MY HOBBY
-        </AppText>
-        <AppText accessibilityRole="header" weight="medium" size={34} style={{ lineHeight: 40, marginTop: 13, letterSpacing: -0.7 }}>
+        <AppText accessibilityRole="header" variant="display">
           {title}
         </AppText>
-        <View className="mt-4">
+        <View className="mt-3 items-start">
           <StatusPill status={attempt.status} />
         </View>
 
         {attempt.status === 'dropped' ? (
-          <View accessibilityLiveRegion="polite" className="mt-7 rounded-card bg-secondary p-5 dark:bg-dark-secondary">
-            <AppText weight="semibold" size={18}>
+          <View accessibilityLiveRegion="polite" className="mt-8 rounded-card bg-secondary p-6 dark:bg-dark-secondary">
+            <AppText variant="heading">
               Maybe it wasn’t your thing. That’s okay.
             </AppText>
-            <AppText size={15} style={{ marginTop: 6 }}>
+            <AppText style={{ marginTop: 4 }}>
               You skipped two days in a row, so we set it aside. Give it another go whenever you like, or find
               something new.
             </AppText>
@@ -129,14 +126,14 @@ export default function AttemptScreen() {
               disabled={busy}
               style={{ marginTop: 16 }}
             />
-            <ActionButton label="Find something new" href="/explore" variant="secondary" style={{ marginTop: 10 }} />
+            <ActionButton label="Find something new" href="/explore" variant="secondary" style={{ marginTop: 8 }} />
           </View>
         ) : attempt.status === 'completed' ? (
-          <View accessibilityLiveRegion="polite" className="mt-7 rounded-card bg-secondary p-5 dark:bg-dark-secondary">
-            <AppText weight="semibold" size={18}>
+          <View accessibilityLiveRegion="polite" className="mt-8 rounded-card bg-secondary p-6 dark:bg-dark-secondary">
+            <AppText variant="heading">
               You gave this a real go.
             </AppText>
-            <AppText size={15} style={{ marginTop: 6 }}>
+            <AppText style={{ marginTop: 4 }}>
               {`You tried it on ${TRIED_DAYS_TO_COMPLETE} days. It stays here, and you can start a new go any time.`}
             </AppText>
             <ActionButton
@@ -151,7 +148,7 @@ export default function AttemptScreen() {
 
         {open ? (
           <>
-            <AppText accessibilityRole="header" weight="semibold" size={18} style={{ marginTop: 28 }}>
+            <AppText accessibilityRole="header" variant="heading" style={{ marginTop: 32 }}>
               How did today go?
             </AppText>
             {showToday ? (
@@ -167,14 +164,14 @@ export default function AttemptScreen() {
                     disabled={busy}
                   />
                 </View>
-                <AppText tone="secondary" size={14} style={{ marginTop: 8 }}>
+                <AppText tone="secondary" variant="small" style={{ marginTop: 8 }}>
                   {todayCheckin
                     ? 'You can switch today’s answer until midnight.'
                     : `Two skipped days in a row sets it aside. ${TRIED_DAYS_TO_COMPLETE} tried days completes it.`}
                 </AppText>
               </>
             ) : (
-              <AppText tone="secondary" size={15} style={{ marginTop: 4 }}>
+              <AppText tone="secondary" style={{ marginTop: 4 }}>
                 Today was part of your last go. Your new go can start tomorrow.
               </AppText>
             )}
@@ -182,8 +179,8 @@ export default function AttemptScreen() {
         ) : null}
 
         {error ? (
-          <View accessibilityLiveRegion="polite" className="mt-4 rounded-2xl border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted">
-            <AppText accessibilityRole="alert" weight="medium" size={14}>
+          <View accessibilityLiveRegion="polite" className="mt-4 rounded-tile border border-input-border bg-muted p-4 dark:border-dark-input-border dark:bg-dark-muted">
+            <AppText accessibilityRole="alert" variant="small" weight="medium">
               {error}
             </AppText>
           </View>
@@ -193,7 +190,7 @@ export default function AttemptScreen() {
 
         {history.length > 0 ? (
           <>
-            <AppText accessibilityRole="header" weight="semibold" size={18} style={{ marginTop: 28 }}>
+            <AppText accessibilityRole="header" variant="heading" style={{ marginTop: 24 }}>
               Your days
             </AppText>
             <View className="mt-1">
@@ -204,8 +201,8 @@ export default function AttemptScreen() {
                   accessibilityLabel={`${dayLabel(checkin.local_date)}, ${checkin.result === 'tried' ? 'tried' : 'skipped'}`}
                   className="min-h-12 flex-row items-center justify-between border-b border-border dark:border-dark-border"
                 >
-                  <AppText size={15}>{dayLabel(checkin.local_date)}</AppText>
-                  <AppText tone="secondary" weight="medium" size={15}>
+                  <AppText >{dayLabel(checkin.local_date)}</AppText>
+                  <AppText tone="secondary" weight="medium">
                     {checkin.result === 'tried' ? 'Tried' : 'Skipped'}
                   </AppText>
                 </View>
@@ -214,10 +211,10 @@ export default function AttemptScreen() {
           </>
         ) : null}
 
-        <AppText accessibilityRole="header" weight="semibold" size={18} style={{ marginTop: 32 }}>
+        <AppText accessibilityRole="header" variant="heading" style={{ marginTop: 32 }}>
           Where is it at?
         </AppText>
-        <AppText tone="secondary" size={14} style={{ marginTop: 2, marginBottom: 12 }}>
+        <AppText tone="secondary" variant="small" style={{ marginTop: 0, marginBottom: 12 }}>
           This follows your answers above.
         </AppText>
         <StatusList value={attempt.status} />
@@ -229,7 +226,7 @@ export default function AttemptScreen() {
     <AppScreen>
       <View className="pb-8 pt-3">
         <BackButton fallback="/profile" />
-        <View className="mt-2.5">{body}</View>
+        <View className="mt-2">{body}</View>
       </View>
     </AppScreen>
   );

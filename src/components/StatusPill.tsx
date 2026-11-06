@@ -5,18 +5,18 @@ import { AppText } from './AppText';
 
 const background: Record<AttemptStatus, string> = {
   active: 'bg-accent-soft dark:bg-dark-accent-soft',
-  planned: 'bg-muted dark:bg-dark-muted',
+  planned: 'border border-border bg-muted dark:border-dark-border dark:bg-dark-muted',
   completed: 'bg-secondary dark:bg-dark-secondary',
-  dropped: 'bg-muted dark:bg-dark-muted',
+  dropped: 'border border-border bg-muted dark:border-dark-border dark:bg-dark-muted',
 };
 
 export function StatusPill({ status }: { status: AttemptStatus }) {
   const colors = useColorScheme() === 'dark' ? darkColors : lightColors;
   return (
-    <View className={`self-start rounded-full px-3 py-1 ${background[status]}`}>
+    <View className={`rounded-full px-3 py-1 ${background[status]}`}>
       <AppText
+        variant="small"
         weight="semibold"
-        size={13}
         tone={status === 'dropped' ? 'secondary' : 'primary'}
         style={status === 'active' ? { color: colors.accentText } : undefined}
       >

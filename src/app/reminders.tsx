@@ -1,10 +1,11 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Linking, Pressable, Switch, View, useColorScheme } from 'react-native';
+import { Linking, Switch, View, useColorScheme } from 'react-native';
 import { AppScreen } from '@/components/AppScreen';
 import { AppText } from '@/components/AppText';
 import { BackButton } from '@/components/BackButton';
+import { PressableScale } from '@/components/PressableScale';
 import { ErrorMessage, LoadingMessage } from '@/components/StatusMessage';
 import { useAuthStore } from '@/features/auth/auth-store';
 import {
@@ -100,14 +101,14 @@ export default function RemindersScreen() {
             return (
               <View
                 key={kind}
-                className={`px-5 py-4 ${index > 0 ? 'border-t border-border dark:border-dark-border' : ''}`}
+                className={`px-6 py-4 ${index > 0 ? 'border-t border-border dark:border-dark-border' : ''}`}
               >
                 <View className="min-h-12 flex-row items-center gap-4">
                   <View className="flex-1">
-                    <AppText weight="semibold" size={17}>
+                    <AppText weight="semibold">
                       {LABELS[kind].title}
                     </AppText>
-                    <AppText tone="secondary" size={14} style={{ marginTop: 2 }}>
+                    <AppText tone="secondary" variant="small" style={{ marginTop: 4 }}>
                       {LABELS[kind].hint}
                     </AppText>
                   </View>
@@ -119,22 +120,22 @@ export default function RemindersScreen() {
                     thumbColor={colors.accentForeground}
                   />
                 </View>
-                <Pressable
+                <PressableScale
                   accessibilityRole="button"
                   accessibilityLabel={`${LABELS[kind].title} time, ${formatTime(time)}`}
                   accessibilityHint="Opens the clock to change it"
                   onPress={() => pickTime(kind)}
-                  className="mt-2 min-h-12 flex-row items-center justify-between rounded-full border border-border px-5 dark:border-dark-border"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : on ? 1 : 0.75 })}
+                  className="min-h-12 flex-row items-center justify-between"
+                  style={on ? null : { opacity: 0.75 }}
                 >
-                  <AppText weight="semibold" size={17}>
+                  <AppText weight="semibold">
                     {formatTime(time)}
                   </AppText>
                   {/* Keyed by time: Android drops the underline when a sibling's text changes. */}
-                  <AppText key={time} weight="semibold" size={15} style={{ textDecorationLine: 'underline' }}>
+                  <AppText key={time} tone="accent" weight="semibold" style={{ textDecorationLine: 'underline' }}>
                     Change
                   </AppText>
-                </Pressable>
+                </PressableScale>
               </View>
             );
           })}
@@ -142,19 +143,17 @@ export default function RemindersScreen() {
 
         <AppText
           accessibilityRole="header"
-          tone="secondary"
-          weight="semibold"
-          size={12}
-          style={{ letterSpacing: 1.5, marginTop: 28, marginBottom: 12 }}
+          variant="heading"
+          style={{ marginTop: 32, marginBottom: 12 }}
         >
-          ON THESE DAYS
+          On these days
         </AppText>
         <View className="flex-row justify-between">
           {WEEKDAY_CHIPS.map((day) => {
             const selected = form.weekdays.includes(day.iso);
             const onlyOne = selected && form.weekdays.length === 1;
             return (
-              <Pressable
+              <PressableScale
                 key={day.iso}
                 accessibilityRole="checkbox"
                 accessibilityLabel={day.name}
@@ -169,16 +168,15 @@ export default function RemindersScreen() {
                     ? 'border-accent bg-accent dark:border-dark-accent dark:bg-dark-accent'
                     : 'border-border bg-surface dark:border-dark-border dark:bg-dark-surface'
                 }`}
-                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
               >
-                <AppText tone={selected ? 'onAccent' : 'primary'} weight="semibold" size={15} accessibilityRole="none">
+                <AppText tone={selected ? 'onAccent' : 'primary'} weight="semibold" accessibilityRole="none">
                   {day.short}
                 </AppText>
-              </Pressable>
+              </PressableScale>
             );
           })}
         </View>
-        <AppText tone="secondary" size={14} style={{ marginTop: 10 }}>
+        <AppText tone="secondary" variant="small" style={{ marginTop: 8 }}>
           Days you haven’t picked stay quiet.
         </AppText>
 
@@ -210,11 +208,11 @@ export default function RemindersScreen() {
     <AppScreen>
       <View className="pb-8 pt-3">
         <BackButton fallback="/profile" />
-        <AppText accessibilityRole="header" weight="medium" size={31} style={{ lineHeight: 37, marginTop: 10, letterSpacing: -0.6 }}>
+        <AppText accessibilityRole="header" variant="display" style={{ marginTop: 8 }}>
           Reminders
         </AppText>
-        <AppText tone="secondary" size={16} style={{ marginTop: 8, marginBottom: 24 }}>
-          Optional, gentle nudges on the days you choose. Skipping one is always fine.
+        <AppText tone="secondary" style={{ marginTop: 8, marginBottom: 32 }}>
+          Gentle nudges on the days you choose. Skipping one is fine.
         </AppText>
         {body}
       </View>

@@ -1,5 +1,6 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { AppText } from './AppText';
+import { PressableScale } from './PressableScale';
 
 export type SegmentOption<T extends string> = { value: T; label: string };
 
@@ -28,7 +29,8 @@ export function SegmentedChoice<T extends string>({
       {options.map((option) => {
         const selected = option.value === value;
         return (
-          <Pressable
+          <PressableScale
+            pressedScale={0.96}
             key={option.value}
             accessibilityRole="radio"
             accessibilityLabel={`${label}: ${option.label}`}
@@ -40,12 +42,11 @@ export function SegmentedChoice<T extends string>({
             className={`min-h-12 flex-1 items-center justify-center rounded-full px-2 ${
               selected ? 'bg-accent dark:bg-dark-accent' : ''
             }`}
-            style={({ pressed }) => ({ opacity: disabled ? 0.6 : pressed ? 0.8 : 1 })}
           >
-            <AppText tone={selected ? 'onAccent' : 'primary'} weight={selected ? 'semibold' : 'medium'} size={15}>
+            <AppText tone={selected ? 'onAccent' : 'primary'} weight={selected ? 'semibold' : 'medium'} >
               {option.label}
             </AppText>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>
